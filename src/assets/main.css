@@ -1,1 +1,89 @@
 @import "tailwindcss";
+
+/* 1. GLOBAL ELEMENT BASE STYLES */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f5fdf6; /* Light green background */
+  color: #333;
+}
+
+h1, h2, h3 {
+  font-family: 'Segoe UI', Verdana, sans-serif;
+  margin-top: 1em;
+}
+
+h1 { color: #1B5E20; } /* Deep forest green */
+h2 { color: #2E7D32; } /* Medium forest green */
+h3 { color: #388E3C; } /* Lighter green */
+
+/* 2. REUSABLE CUSTOM INTERFACE UTILITIES */
+.choco-card {
+  background-color: white;
+  width: 100%;
+  max-width: 28rem;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f0fdf4;
+}
+
+.choco-tab-btn {
+  width: 50%;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  font-family: 'Segoe UI', sans-serif;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.choco-tab-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.choco-tab-btn-active {
+  border-bottom: 3px solid #1B5E20;
+  color: #1B5E20;
+  font-weight: bold;
+}
+
+.choco-input {
+  width: 100%;
+  padding: 0.625rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  outline: none;
+}
+
+.choco-input:focus {
+  border-color: #2E7D32;
+}
+
+.choco-btn-primary {
+  width: 100%;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  background-color: #2E7D32;
+  color: white;
+  font-weight: bold;
+  border-radius: 0.5rem;
+  transition: background-color 0.3s;
+}
+
+.choco-btn-primary:hover {
+  background-color: #1B5E20;
+}
+
+/* 3. TRANSITION FADE EFFECT WHEN TABS CLICKED */
+.fade-in-tab {
+  animation: fadeEffect 0.4s ease-in-out;
+}
+
+@keyframes fadeEffect {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
