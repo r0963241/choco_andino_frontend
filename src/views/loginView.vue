@@ -74,6 +74,8 @@
 <script>
 import axios from 'axios';
 
+const API_BASE_URL = 'http://localhost:3000';
+
 export default {
   data() {
     return {
@@ -96,7 +98,7 @@ export default {
         return;
       }
       try {
-        const response = await axios.post('http://127.0.0', this.loginForm);
+        const response = await axios.post(`${API_BASE_URL}/api/auth/login`, this.loginForm);
         this.isError = false;
         this.alertMessage = `✅ ${response.data.message}`;
         localStorage.setItem('userToken', response.data.token);
@@ -120,7 +122,7 @@ export default {
         return;
       }
       try {
-        const response = await axios.post('http://127.0.0', this.registerForm);
+        const response = await axios.post(`${API_BASE_URL}/api/auth/register`, this.registerForm);
         this.isError = false;
         this.alertMessage = `🎉 ${response.data.message}`;
         setTimeout(() => {
