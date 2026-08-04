@@ -1,63 +1,129 @@
 <template>
-  <div class="p-8">
-    <!-- Headers matching my dark green accents -->
-    <h1>El Chocó Andino Marketplace</h1>
-    <h2 class="mt-2 mb-8">Discover Sustainable Eco-Accommodations</h2>
-
-    <!-- Loading State Alert Box -->
-    <div v-if="loading" class="text-center p-6 text-gray-500 font-medium">
-      🍃 Gathering local cabins from the cloud forest...
-    </div>
-
-    <!-- Accommodations Responsive Card Grid Layout -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div 
-        v-for="cabin in accommodations" 
-        :key="cabin.id" 
-        class="bg-white rounded-xl shadow-md border border-green-100 overflow-hidden hover:shadow-lg transition duration-300"
+  <div class="min-h-screen bg-brand-bg text-[#333] font-sans">
+    
+    <!-- 1. MASHPI-STYLE HERO IMMERSION BANNER (VIDEO BACKDROP EDITION) -->
+    <header class="relative w-full h-[75vh] bg-neutral-900 overflow-hidden flex items-center justify-center text-center px-4">
+      
+      <!-- Embedded Local Video Loop Asset File -->
+      <video 
+        autoplay 
+        loop 
+        muted 
+        playsinline 
+        class="absolute inset-0 w-full h-full object-cover opacity-50 pointer-events-none"
       >
-        <!-- Card Text Content Area -->
-        <div class="p-6">
-          <span class="text-xs font-bold uppercase tracking-wide text-[#2E7D32] bg-green-50 px-2.5 py-1 rounded-full">
-            {{ cabin.location }}
-          </span>
+        <source :src="videoUrl" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+
+      <!-- Text Content Overlay Panel -->
+      <div class="relative z-10 max-w-3xl fade-in-tab">
+        <span class="text-xs uppercase tracking-widest font-bold text-white bg-brand-medium px-4 py-1.5 rounded-full inline-block mb-4 shadow">
+          Metropolitan District of Quito Ecosystem
+        </span>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white font-sans tracking-tight mt-0 drop-shadow-md">
+          A Rainforest Hotel In The Clouds
+        </h1>
+        <p class="text-white/90 text-base md:text-lg mt-4 max-w-2xl mx-auto drop-shadow font-sans">
+          Nestled inside the biodiverse Chocó Andino private reserve. Encounter otherworldly flora, 
+          cascading waterfalls, and extraordinary creatures exclusive to our planet.
+        </p>
+      </div>
+    </header>
+
+    <!-- 2. SUSTAINABILITY & MISSION SECTION -->
+    <section class="max-w-4xl mx-auto px-6 pt-16 pb-8 text-center">
+      <h2 class="text-3xl font-bold font-sans text-brand-dark mt-0 mb-4">Regenerative Tourism & Conservation</h2>
+      <p class="text-gray-600 text-base leading-relaxed font-sans max-w-3xl mx-auto">
+        Dedicated to promoting wellbeing, conservation, and community development in the Andean Chocó region. 
+        Every visit minimizes impact, funds internal scientific research, and actively improves the ecosystem, 
+        leaving the cloud forest in better shape than we found it.
+      </p>
+      <div class="w-16 h-1 bg-brand-medium mx-auto mt-6 rounded"></div>
+    </section>
+
+    <!-- 3. CORE MARKETPLACE DISCOVERY SECTION -->
+    <main class="max-w-7xl mx-auto px-6 py-12">
+      <div class="text-center mb-10">
+        <h2 class="text-2xl font-bold font-sans text-brand-dark mt-0">Explore Accommodations</h2>
+        <p class="text-sm text-gray-500 font-sans mt-1">Tranquil sanctuaries integrating modern comforts with pristine wilderness.</p>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="text-center p-12 text-gray-500 font-medium fade-in-tab">
+        <span class="inline-block animate-spin mr-2">🍃</span> Gathering local reserve cabins...
+      </div>
+
+      <!-- INVENTORY GRID LAYOUT -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div 
+          v-for="cabin in accommodations" 
+          :key="cabin.id" 
+          class="bg-white rounded-xl overflow-hidden shadow-sm border border-green-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col"
+        >
+          <!-- Floating Location Banner Card -->
+          <div class="relative h-56 bg-neutral-100 overflow-hidden">
+            <img 
+              src="https://unsplash.com" 
+              alt="Eco Lodge Window Suite" 
+              class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+            />
+            <span class="absolute top-4 left-4 text-xs font-bold uppercase tracking-wider bg-white/90 backdrop-blur-sm text-brand-dark px-3 py-1 rounded shadow-sm">
+              📍 {{ cabin.location }}
+            </span>
+          </div>
           
-          <h3 class="text-xl font-bold mt-3 mb-2">{{ cabin.title }}</h3>
-          <p class="text-gray-600 text-sm line-clamp-3 mb-4">{{ cabin.description }}</p>
-          
-          <!-- Price and Actions Alignment Bar -->
-          <div class="flex items-center justify-between border-t border-gray-100 pt-4 mt-4">
-            <div>
-              <span class="text-2xl font-extrabold text-[#1B5E20]">${{ cabin.price_per_night }}</span>
-              <span class="text-xs text-gray-500 font-medium"> / night</span>
-            </div>
+          <!-- Card Details Area -->
+          <div class="p-6 flex flex-col flex-grow">
+            <h3 class="text-xl font-bold font-sans text-brand-dark mt-0 mb-2">
+              {{ cabin.title }}
+            </h3>
+            <p class="text-gray-600 text-sm leading-relaxed mb-6 flex-grow line-clamp-3">
+              {{ cabin.description }}
+            </p>
             
-            <button @click="bookAccommodation(cabin.id)" class="px-4 py-2 bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm font-bold rounded-lg transition shadow">
-              Book Now
-            </button>
+            <!-- Price and Action Row -->
+            <div class="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
+              <div>
+                <span class="text-2xl font-extrabold text-brand-medium tracking-tight">${{ cabin.price_per_night }}</span>
+                <span class="text-xs text-gray-400 font-medium"> / night</span>
+              </div>
+              
+              <button 
+                @click="bookAccommodation(cabin.id)" 
+                class="px-5 py-2.5 bg-brand-dark hover:bg-brand-medium text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors duration-300 shadow-sm"
+              >
+                Book Stay
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
+
+    <!-- 4. CLEAN ECOLOGICAL FOOTER ELEMENT -->
+    <footer class="bg-brand-dark text-white/80 text-center py-8 border-t border-green-800 text-xs tracking-wider font-sans">
+      <p>© 2026 El Chocó Andino Private Reserve Platform. All Rights Reserved.</p>
+    </footer>
   </div>
 </template>
 
 <script>
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000';
+const videoUrl = new URL('../videos/mindo-realistic-video-home.mp4', import.meta.url).href;
 
 export default {
   data() {
     return {
       accommodations: [],
-      loading: true
+      loading: true,
+      videoUrl
     };
   },
   async created() {
-    // Automatically runs when the page loads to pull data from your backend
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/accommodations`);
+      const response = await axios.get('http://localhost:3000/api/accommodations');
       this.accommodations = response.data;
     } catch (error) {
       console.error('Error fetching marketplace inventory:', error);
@@ -67,13 +133,12 @@ export default {
   },
   methods: {
     bookAccommodation(id) {
-      // Basic validation: Check if user is logged in before booking
       const token = localStorage.getItem('userToken');
       if (!token) {
-        alert('⚠️ You must log in first to book local accommodations.');
+        alert('⚠️ Booking requires secure profile verification. Redirecting to access panel...');
         this.$router.push('/login');
       } else {
-        alert(`🎉 Booking request submitted for accommodation ID: ${id}! We will hook up this endpoint next.`);
+        alert(`🎉 Exploration request registered for accommodation ID: ${id}!`);
       }
     }
   }

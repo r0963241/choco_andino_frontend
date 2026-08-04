@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
+    tailwindcss() //Import styles from 
   ],
   resolve: {
     alias: {
