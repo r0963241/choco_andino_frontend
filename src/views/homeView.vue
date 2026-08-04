@@ -1,10 +1,10 @@
 <template>
   <div class="min-h-screen bg-brand-bg text-[#333] font-sans">
     
-    <!-- 1. MASHPI-STYLE HERO IMMERSION BANNER (VIDEO BACKDROP EDITION) -->
+    <!-- 1. VIDEO-STYLE HERO IMMERSION BANNER (VIDEO BACKDROP EDITION) -->
     <header class="relative w-full h-[75vh] bg-neutral-900 overflow-hidden flex items-center justify-center text-center px-4">
       
-      <!-- Embedded Local Video Loop Asset File -->
+      <!-- Local Video Loop-->
       <video 
         autoplay 
         loop 
