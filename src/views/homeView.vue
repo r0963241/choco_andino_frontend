@@ -64,8 +64,8 @@
           <!-- Floating Location Banner Card -->
           <div class="relative h-56 bg-neutral-100 overflow-hidden">
             <img 
-              src="https://unsplash.com" 
-              alt="Eco Lodge Window Suite" 
+              :src="cabin.image_url || '/cabin2.jpg'" 
+              :alt="cabin.title"
               class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
             />
             <span class="absolute top-4 left-4 text-xs font-bold uppercase tracking-wider bg-white/90 backdrop-blur-sm text-brand-dark px-3 py-1 rounded shadow-sm">

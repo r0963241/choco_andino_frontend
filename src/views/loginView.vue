@@ -56,6 +56,7 @@
             <select v-model="registerForm.role" class="choco-input bg-white">
               <option value="visitor">Visitor (I want to book cabins)</option>
               <option value="owner">Local Owner (I manage B&Bs/products)</option>
+              <option value="admin">Admin</option>
             </select>
           </div>
           <button type="submit" class="choco-btn-primary">Create Account</button>
