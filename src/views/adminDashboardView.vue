@@ -10,7 +10,26 @@
         >
           Refresh Queue
         </button>
+        <span class="px-3 py-1 rounded-full bg-green-600 text-white text-[11px] font-bold uppercase tracking-wider">
+          {{ pendingCount }} Pending
+        </span>
         <p class="text-xs text-gray-500">Signed in as {{ currentUser.name }} ({{ currentUser.role }})</p>
+      </div>
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button
+          v-for="option in statusOptions"
+          :key="option.value"
+          @click="$emit('status-change', option.value)"
+          :class="[
+            'px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition',
+            selectedStatus === option.value
+              ? 'bg-brand-medium text-white border-brand-medium'
+              : 'bg-white text-brand-medium border-green-200 hover:bg-green-50'
+          ]"
+        >
+          {{ option.label }}
+        </button>
       </div>
 
       <p
@@ -35,7 +54,9 @@
             <div>
               <h4 class="text-base font-bold text-brand-dark">{{ listing.title }}</h4>
               <p class="text-sm text-gray-500 mt-1">{{ listing.location }} · {{ listing.property_type || 'property' }}</p>
-              <p class="text-xs text-gray-500 mt-2">Owner ID: {{ listing.owner_id || 'N/A' }} · Units: {{ listing.unit_count || 0 }}</p>
+              <p class="text-xs text-gray-500 mt-2">Submitted by: {{ listing.owner_name || 'Unknown owner' }}<span v-if="listing.owner_email"> · {{ listing.owner_email }}</span></p>
+              <p class="text-xs text-gray-500 mt-1">Owner ID: {{ listing.owner_id || 'N/A' }} · Units: {{ listing.unit_count || 0 }}</p>
+              <p class="text-xs text-gray-500 mt-1">Submitted at: {{ formatDateTime(listing.created_at) }}</p>
               <p class="text-sm text-gray-700 mt-3">{{ listing.description }}</p>
             </div>
             <div class="flex items-center gap-2">
@@ -72,6 +93,14 @@ export default {
       type: Array,
       default: () => []
     },
+    pendingCount: {
+      type: Number,
+      default: 0
+    },
+    selectedStatus: {
+      type: String,
+      default: 'pending'
+    },
     adminAlert: {
       type: String,
       default: ''
@@ -81,6 +110,28 @@ export default {
       default: () => []
     }
   },
-  emits: ['refresh', 'moderate']
+  emits: ['refresh', 'status-change', 'moderate'],
+  data() {
+    return {
+      statusOptions: [
+        { label: 'Pending', value: 'pending' },
+        { label: 'Approved', value: 'approved' },
+        { label: 'Rejected', value: 'rejected' },
+        { label: 'All', value: 'all' }
+      ]
+    };
+  },
+  methods: {
+    formatDateTime(value) {
+      if (!value) {
+        return 'Unknown';
+      }
+
+      return new Intl.DateTimeFormat('en-GB', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      }).format(new Date(value));
+    }
+  }
 };
 </script>

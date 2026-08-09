@@ -27,7 +27,8 @@
           :current-user="currentUser"
           :owner-listings="ownerListings"
           :form-alert="formAlert"
-          :accommodation-form="accommodationForm"
+          :uploaded-image-url="uploadedImageUrl"
+          :form-reset-key="formResetKey"
           :uploading-image="uploadingImage"
           @submit="submitAccommodation"
           @image-upload="handleImageUpload"
@@ -37,9 +38,12 @@
           v-else-if="currentUser.role === 'admin'"
           :current-user="currentUser"
           :pending-listings="pendingListings"
+          :pending-count="pendingCount"
+          :selected-status="adminStatusFilter"
           :admin-alert="adminAlert"
           :processing-ids="processingIds"
           @refresh="loadPendingListings"
+          @status-change="handleAdminStatusChange"
           @moderate="handleModeration"
         />
       </div>
@@ -64,24 +68,15 @@ export default {
       currentUser: { name: 'Explorer', role: 'visitor' },
       ownerListings: [],
       pendingListings: [],
+      pendingCount: 0,
       formAlert: '',
       adminAlert: '',
-      accommodationForm: {
-        title: '',
-        address: '',
-        property_type: 'rooms',
-        unit_count: '',
-        location: '',
-        price_per_night: '',
-        description: '',
-        has_ac: false,
-        has_parking: false,
-        has_room_service: false,
-        has_private_wc: false,
-        image_url: ''
-      },
+      uploadedImageUrl: '',
+      formResetKey: 0,
       uploadingImage: false,
-      processingIds: []
+      processingIds: [],
+      adminQueuePoller: null,
+      adminStatusFilter: 'pending'
     };
   },
   async created() {
@@ -102,7 +97,11 @@ export default {
 
     if (this.currentUser.role === 'admin') {
       await this.loadPendingListings();
+      this.startAdminQueuePolling();
     }
+  },
+  beforeUnmount() {
+    this.stopAdminQueuePolling();
   },
   methods: {
     handleLogout() {
@@ -120,11 +119,35 @@ export default {
     },
     async loadPendingListings() {
       try {
-        const response = await axios.get('http://localhost:3000/api/accommodations/pending');
-        this.pendingListings = response.data;
+        const [filteredResponse, pendingResponse] = await Promise.all([
+          axios.get(`http://localhost:3000/api/accommodations/pending?status=${this.adminStatusFilter}`),
+          axios.get('http://localhost:3000/api/accommodations/pending?status=pending')
+        ]);
+
+        this.pendingListings = filteredResponse.data;
+        this.pendingCount = pendingResponse.data.length;
+        if (!this.pendingListings.length && this.adminAlert && !this.adminAlert.toLowerCase().includes('failed')) {
+          this.adminAlert = '';
+        }
       } catch (err) {
         console.error('Error loading pending accommodations:', err);
         this.adminAlert = 'Failed to load moderation queue.';
+      }
+    },
+    handleAdminStatusChange(status) {
+      this.adminStatusFilter = status;
+      this.loadPendingListings();
+    },
+    startAdminQueuePolling() {
+      this.stopAdminQueuePolling();
+      this.adminQueuePoller = window.setInterval(() => {
+        this.loadPendingListings();
+      }, 5000);
+    },
+    stopAdminQueuePolling() {
+      if (this.adminQueuePoller) {
+        window.clearInterval(this.adminQueuePoller);
+        this.adminQueuePoller = null;
       }
     },
     async handleImageUpload(event) {
@@ -140,7 +163,7 @@ export default {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
 
-        this.accommodationForm.image_url = response.data.imageUrl;
+        this.uploadedImageUrl = response.data.imageUrl;
         this.formAlert = '📸 Image uploaded successfully.';
       } catch (err) {
         console.error('Image upload failed:', err);
@@ -159,24 +182,11 @@ export default {
       };
 
       try {
-        const response = await axios.post('http://localhost:3000/api/accommodations', payload);
-
-        this.ownerListings.unshift(response.data.accommodation);
+        await axios.post('http://localhost:3000/api/accommodations', payload);
+        await this.loadOwnerListings();
         this.formAlert = '🎉 Property submission sent for admin approval.';
-        this.accommodationForm = {
-          title: '',
-          address: '',
-          property_type: 'rooms',
-          unit_count: '',
-          location: '',
-          price_per_night: '',
-          description: '',
-          has_ac: false,
-          has_parking: false,
-          has_room_service: false,
-          has_private_wc: false,
-          image_url: ''
-        };
+        this.uploadedImageUrl = '';
+        this.formResetKey += 1;
       } catch (err) {
         console.error('Error submitting infrastructure resource configuration path:', err);
         this.formAlert = err.response?.data?.message || 'Failed to save accommodation.';
@@ -189,7 +199,7 @@ export default {
       try {
         await axios.patch(`http://localhost:3000/api/accommodations/${id}/status`, { status });
         this.adminAlert = `Listing ${status} successfully.`;
-        this.pendingListings = this.pendingListings.filter((item) => item.id !== id);
+        await this.loadPendingListings();
       } catch (err) {
         console.error('Error updating listing status:', err);
         this.adminAlert = err.response?.data?.message || 'Failed to update listing status.';

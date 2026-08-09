@@ -59,7 +59,7 @@
           </div>
           <div>
             <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Upload Image</label>
-            <input type="file" accept="image/*" @change="handleImageUpload" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-bg file:text-brand-medium hover:file:bg-green-100" />
+            <input ref="imageInput" type="file" accept="image/*" @change="handleImageUpload" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-bg file:text-brand-medium hover:file:bg-green-100" />
             <p v-if="uploadingImage" class="text-xs text-brand-medium mt-2">Uploading image...</p>
           </div>
           <div v-if="form.image_url" class="text-xs text-brand-medium">
@@ -101,6 +101,7 @@
             <thead>
               <tr class="border-b border-gray-100 text-[11px] uppercase font-bold text-brand-medium tracking-wider">
                 <th class="pb-3">Property Name</th>
+                <th class="pb-3">Owner</th>
                 <th class="pb-3">Location</th>
                 <th class="pb-3">Accommodations</th>
                 <th class="pb-3">Base Price</th>
@@ -110,6 +111,7 @@
             <tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
               <tr v-for="item in ownerListings" :key="item.id">
                 <td class="py-3.5 font-bold text-brand-dark">{{ item.title }}</td>
+                <td class="py-3.5 text-gray-600">{{ item.owner_name || currentUser.name }}</td>
                 <td class="py-3.5 text-gray-500">{{ item.location }}</td>
                 <td class="py-3.5 text-gray-600">{{ item.unit_count || 0 }}</td>
                 <td class="py-3.5 text-brand-medium font-bold">${{ item.price_per_night }}</td>
@@ -142,9 +144,13 @@ export default {
       type: String,
       default: ''
     },
-    accommodationForm: {
-      type: Object,
-      default: () => ({})
+    uploadedImageUrl: {
+      type: String,
+      default: ''
+    },
+    formResetKey: {
+      type: Number,
+      default: 0
     },
     uploadingImage: {
       type: Boolean,
@@ -154,29 +160,15 @@ export default {
   emits: ['submit', 'image-upload', 'logout'],
   data() {
     return {
-      form: {
-        title: '',
-        address: '',
-        property_type: 'rooms',
-        unit_count: '',
-        location: '',
-        price_per_night: '',
-        description: '',
-        has_ac: false,
-        has_parking: false,
-        has_room_service: false,
-        has_private_wc: false,
-        image_url: ''
-      }
+      form: this.getInitialForm()
     };
   },
   watch: {
-    accommodationForm: {
-      immediate: true,
-      deep: true,
-      handler(newValue) {
-        this.form = { ...this.form, ...newValue };
-      }
+    uploadedImageUrl(newValue) {
+      this.form.image_url = newValue || '';
+    },
+    formResetKey() {
+      this.resetForm();
     }
   },
   computed: {
@@ -191,6 +183,28 @@ export default {
     }
   },
   methods: {
+    getInitialForm() {
+      return {
+        title: '',
+        address: '',
+        property_type: 'rooms',
+        unit_count: '',
+        location: '',
+        price_per_night: '',
+        description: '',
+        has_ac: false,
+        has_parking: false,
+        has_room_service: false,
+        has_private_wc: false,
+        image_url: ''
+      };
+    },
+    resetForm() {
+      this.form = this.getInitialForm();
+      if (this.$refs.imageInput) {
+        this.$refs.imageInput.value = '';
+      }
+    },
     submitForm() {
       this.$emit('submit', {
         ...this.form,
