@@ -1,14 +1,25 @@
 <template>
   <div class="space-y-6">
     <div class="bg-white p-6 rounded-xl border border-green-100 shadow-sm backdrop-blur-md bg-white/95">
-      <h3 class="text-lg font-bold text-brand-dark mt-0 mb-1">Accommodation Dashboard</h3>
-      <p class="text-xs text-gray-500 mb-4">Create each room or cabin under an approved parent property.</p>
+      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-brand-dark mt-0 mb-1">Accommodation Dashboard</h3>
+          <p class="text-xs text-gray-500">Create each room or cabin under an approved parent property.</p>
+        </div>
+        <button
+          type="button"
+          class="px-3 py-2 rounded-lg border border-green-200 bg-green-50 text-green-700 text-[11px] font-bold uppercase tracking-wide hover:bg-green-100"
+          @click="showAccommodationForm = !showAccommodationForm"
+        >
+          {{ showAccommodationForm ? 'Hide Form' : 'Expand Form' }}
+        </button>
+      </div>
 
       <div v-if="approvedProperties.length === 0" class="p-4 rounded-xl border border-dashed border-amber-200 bg-amber-50 text-amber-800 text-sm">
         Your accommodation form unlocks after at least one property is approved by the admin.
       </div>
 
-      <form v-else @submit.prevent="submitAccommodationForm" class="space-y-4">
+      <form v-else-if="showAccommodationForm" @submit.prevent="submitAccommodationForm" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Parent Property</label>
           <select v-model="accommodationForm.property_id" class="choco-input text-sm" required>
@@ -92,6 +103,10 @@
         </button>
       </form>
 
+      <div v-else class="p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 text-slate-700 text-sm">
+        Accommodation form is currently hidden. Click "Expand Form" to open it.
+      </div>
+
       <p v-if="accommodationAlert" class="mt-4 text-xs font-semibold p-2.5 bg-brand-bg text-brand-medium border border-green-100 rounded-lg text-center">
         {{ accommodationAlert }}
       </p>
@@ -161,6 +176,7 @@ export default {
   emits: ['submit-accommodation', 'image-upload'],
   data() {
     return {
+      showAccommodationForm: false,
       accommodationForm: this.getInitialAccommodationForm()
     };
   },

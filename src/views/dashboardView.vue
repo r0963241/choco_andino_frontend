@@ -11,6 +11,12 @@
           <p class="text-sm text-gray-500 mt-1 font-sans">
             Welcome back, <span class="font-bold text-brand-medium">{{ currentUser.name }}</span>. Account profile access tier: 
             <span class="px-2 py-0.5 bg-brand-medium text-white text-xs font-bold rounded-full uppercase tracking-wider">{{ currentUser.role }}</span>
+            <span
+              v-if="currentUser.role === 'owner' && pendingOwnerBookingCount > 0"
+              class="ml-2 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full uppercase tracking-wider border border-amber-200"
+            >
+              {{ pendingOwnerBookingCount }} booking request{{ pendingOwnerBookingCount > 1 ? 's' : '' }}
+            </span>
           </p>
         </div>
         <button @click="handleLogout" class="mt-4 md:mt-0 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold uppercase tracking-wider rounded-lg transition border border-red-200">
@@ -100,8 +106,14 @@ export default {
       uploadingTarget: '',
       processingIds: [],
       adminQueuePoller: null,
+      ownerBookingPoller: null,
       adminStatusFilter: 'pending'
     };
+  },
+  computed: {
+    pendingOwnerBookingCount() {
+      return this.ownerBookingRequests.filter((item) => item.status === 'pending').length;
+    }
   },
   async created() {
     const token = localStorage.getItem('userToken');
@@ -117,6 +129,7 @@ export default {
 
     if (this.currentUser.role === 'owner') {
       await Promise.all([this.loadOwnerProperties(), this.loadOwnerAccommodations(), this.loadOwnerBookingRequests()]);
+      this.startOwnerBookingPolling();
     }
 
     if (this.currentUser.role === 'admin') {
@@ -126,6 +139,7 @@ export default {
   },
   beforeUnmount() {
     this.stopAdminQueuePolling();
+    this.stopOwnerBookingPolling();
   },
   methods: {
     handleLogout() {
@@ -189,6 +203,18 @@ export default {
       if (this.adminQueuePoller) {
         window.clearInterval(this.adminQueuePoller);
         this.adminQueuePoller = null;
+      }
+    },
+    startOwnerBookingPolling() {
+      this.stopOwnerBookingPolling();
+      this.ownerBookingPoller = window.setInterval(() => {
+        this.loadOwnerBookingRequests();
+      }, 5000);
+    },
+    stopOwnerBookingPolling() {
+      if (this.ownerBookingPoller) {
+        window.clearInterval(this.ownerBookingPoller);
+        this.ownerBookingPoller = null;
       }
     },
     async handleImageUpload(event) {
