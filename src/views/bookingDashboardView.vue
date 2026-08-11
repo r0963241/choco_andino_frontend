@@ -102,6 +102,7 @@
 							<th class="pb-3">Check-In</th>
 							<th class="pb-3">Check-Out</th>
 							<th class="pb-3">Status</th>
+							<th class="pb-3 text-right">Action</th>
 						</tr>
 					</thead>
 					<tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
@@ -123,6 +124,17 @@
 								<span :class="statusBadgeClass(booking.status)" class="px-2 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide">
 									{{ booking.status || 'pending' }}
 								</span>
+							</td>
+							<td class="py-3.5 text-right">
+								<button
+									v-if="canCancelBooking(booking)"
+									type="button"
+									class="px-3 py-1.5 rounded border border-red-200 bg-red-50 text-red-700 text-[11px] font-bold uppercase tracking-wide hover:bg-red-100"
+									@click="cancelBooking(booking.id)"
+								>
+									Cancel
+								</button>
+								<span v-else class="text-xs text-gray-400 font-semibold uppercase">N/A</span>
 							</td>
 						</tr>
 					</tbody>
@@ -341,6 +353,39 @@ export default {
 			} finally {
 				this.submitting = false;
 			}
+		},
+		async cancelBooking(bookingId) {
+			this.bookingAlertIsError = false;
+			this.bookingAlert = '';
+
+			try {
+				await axios.patch(`${API_BASE_URL}/api/bookings/${bookingId}/cancel`, {
+					visitor_id: Number(this.currentUser.id)
+				});
+				this.bookingAlert = `Booking #${bookingId} cancelled successfully.`;
+				await this.loadVisitorBookings();
+			} catch (error) {
+				console.error('Error cancelling booking:', error);
+				this.bookingAlertIsError = true;
+				this.bookingAlert = error.response?.data?.message || 'Failed to cancel booking.';
+			}
+		},
+		canCancelBooking(booking) {
+			const status = String(booking?.status || '').toLowerCase();
+			if (!['pending', 'confirmed'].includes(status)) {
+				return false;
+			}
+
+			const checkInRaw = booking?.check_in_date || booking?.booking_date;
+			if (!checkInRaw) {
+				return false;
+			}
+
+			const checkIn = new Date(checkInRaw);
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			checkIn.setHours(0, 0, 0, 0);
+			return checkIn.getTime() > today.getTime();
 		},
 		formatPrice(value) {
 			const parsed = Number(value || 0);
