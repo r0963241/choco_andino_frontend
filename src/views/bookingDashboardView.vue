@@ -39,7 +39,7 @@
 						<input v-model="bookingForm.check_out_date" type="date" :min="bookingForm.check_in_date || today" class="choco-input text-sm" required />
 					</div>
 				</div>
-
+            <!--
 				<div>
 					<label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Booking Status</label>
 					<select v-model="bookingForm.status" class="choco-input text-sm" required>
@@ -48,7 +48,7 @@
 						<option value="cancelled">Cancelled</option>
 					</select>
 				</div>
-
+            -->
 				<button type="submit" :disabled="submitting" class="choco-btn-primary text-xs uppercase tracking-wider py-2.5 disabled:opacity-60 disabled:cursor-not-allowed">
 					{{ submitting ? 'Saving Booking...' : 'Save Booking' }}
 				</button>
@@ -61,6 +61,9 @@
 
 		<div class="bg-white p-6 rounded-xl border border-green-100 shadow-sm">
 			<h3 class="text-lg font-bold text-brand-dark mt-0 mb-4">Your Bookings</h3>
+			<div v-if="confirmationNotice" class="mb-4 p-3 rounded-lg border border-green-200 bg-green-50 text-green-800 text-sm font-semibold">
+				{{ confirmationNotice }}
+			</div>
 			<div v-if="loadingBookings" class="text-sm text-gray-500">Loading your bookings...</div>
 			<div v-else-if="!bookingsEndpointReady" class="p-4 rounded-xl border border-dashed border-amber-200 bg-amber-50 text-amber-800 text-sm">
 				Booking API endpoint not available yet. Expected endpoint: GET /api/bookings/visitor/:visitorId
@@ -125,6 +128,10 @@ export default {
 			loadingBookings: true,
 			submitting: false,
 			bookingsEndpointReady: true,
+			confirmationNotice: '',
+			hasLoadedBookingSnapshot: false,
+			knownConfirmedBookingIds: [],
+			bookingPoller: null,
 			bookingAlert: '',
 			bookingAlertIsError: false,
 			today: new Date().toISOString().slice(0, 10),
@@ -146,10 +153,14 @@ export default {
 	},
 	async created() {
 		await Promise.all([this.loadAccommodations(), this.loadVisitorBookings()]);
+		this.startBookingPolling();
 
 		if (!this.bookingForm.accommodation_id && this.availableAccommodations[0]) {
 			this.bookingForm.accommodation_id = String(this.availableAccommodations[0].id);
 		}
+	},
+	beforeUnmount() {
+		this.stopBookingPolling();
 	},
 	methods: {
 		async loadAccommodations() {
@@ -171,7 +182,25 @@ export default {
 
 			try {
 				const response = await axios.get(`${API_BASE_URL}/api/bookings/visitor/${this.currentUser.id}`);
-				this.visitorBookings = response.data || [];
+				const bookings = response.data || [];
+				const confirmedIds = bookings
+					.filter((item) => String(item.status || '').toLowerCase() === 'confirmed')
+					.map((item) => item.id);
+
+				if (this.hasLoadedBookingSnapshot) {
+					const newlyConfirmed = confirmedIds.filter((id) => !this.knownConfirmedBookingIds.includes(id));
+					if (newlyConfirmed.length) {
+						this.confirmationNotice = newlyConfirmed.length === 1
+							? `Your booking #${newlyConfirmed[0]} has been confirmed by the owner.`
+							: `${newlyConfirmed.length} of your bookings have been confirmed by owners.`;
+					}
+				} else if (confirmedIds.length) {
+					this.confirmationNotice = `You have ${confirmedIds.length} confirmed booking${confirmedIds.length > 1 ? 's' : ''}.`;
+				}
+
+				this.knownConfirmedBookingIds = confirmedIds;
+				this.hasLoadedBookingSnapshot = true;
+				this.visitorBookings = bookings;
 			} catch (error) {
 				if (error.response?.status === 404) {
 					this.bookingsEndpointReady = false;
@@ -183,6 +212,18 @@ export default {
 				}
 			} finally {
 				this.loadingBookings = false;
+			}
+		},
+		startBookingPolling() {
+			this.stopBookingPolling();
+			this.bookingPoller = window.setInterval(() => {
+				this.loadVisitorBookings();
+			}, 5000);
+		},
+		stopBookingPolling() {
+			if (this.bookingPoller) {
+				window.clearInterval(this.bookingPoller);
+				this.bookingPoller = null;
 			}
 		},
 		async submitBooking() {
@@ -209,7 +250,7 @@ export default {
 				booking_date: this.bookingForm.check_in_date,
 				check_in_date: this.bookingForm.check_in_date,
 				check_out_date: this.bookingForm.check_out_date,
-				status: this.bookingForm.status || 'pending'
+				status: 'pending'
 			};
 
 			try {
