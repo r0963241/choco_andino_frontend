@@ -24,7 +24,7 @@
 				<div v-if="selectedAccommodation" class="p-4 rounded-xl border border-green-100 bg-brand-bg/60 space-y-2 text-sm">
 					<p class="font-bold text-brand-dark">Selected Accommodation</p>
 					<p><span class="font-semibold">Name:</span> {{ selectedAccommodation.title }}</p>
-					<p><span class="font-semibold">Type:</span> {{ selectedAccommodation.accommodation_type || 'Not specified' }} / {{ selectedAccommodation.bed_type || 'Not specified' }}</p>
+					<p><span class="font-semibold">Type:</span> {{ accommodationTypeLabel(selectedAccommodation) }} / {{ bedTypeLabel(selectedAccommodation) }}</p>
 					<p><span class="font-semibold">Location:</span> {{ selectedAccommodation.location || 'Not provided' }}</p>
 					<p><span class="font-semibold">Price:</span> {{ formatPrice(selectedAccommodation.price_per_night) }} / night</p>
 				</div>
@@ -39,13 +39,35 @@
 						<input v-model="bookingForm.check_out_date" type="date" :min="bookingForm.check_in_date || today" class="choco-input text-sm" required />
 					</div>
 				</div>
+				<div>
+					<label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-2">Number of Guests</label>
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+						<div>
+							<label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Adults</label>
+							<input v-model.number="bookingForm.adults" type="number" min="1" :max="bookingLimits.maxAdults" class="choco-input text-sm" required />
+						</div>
+						<div>
+							<label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Kids</label>
+							<input v-model.number="bookingForm.kids" type="number" min="0" :max="bookingLimits.maxKids" class="choco-input text-sm" required />
+						</div>
+						<div>
+							<label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Babies</label>
+							<input v-model.number="bookingForm.babies" type="number" min="0" :max="bookingLimits.maxBabies" class="choco-input text-sm" required />
+						</div>
+					</div>
+					<p class="mt-2 text-xs text-gray-500">
+						Allowed: up to {{ bookingLimits.maxAdults }} adults, {{ bookingLimits.maxKids }} kids, {{ bookingLimits.maxBabies }} babies.
+						Total selected: {{ totalGuests }} / {{ bookingLimits.maxGuests }}.
+						<span v-if="bookingLimits.usesFallback" class="block mt-1">Detailed category limits are not configured for this accommodation yet, so category limits are estimated from total capacity.</span>
+					</p>
+				</div>
             <!--
 				<div>
-					<label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Booking Status</label>
+					<label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Select Occupancy</label>
 					<select v-model="bookingForm.status" class="choco-input text-sm" required>
-						<option value="pending">Pending</option>
-						<option value="confirmed">Confirmed</option>
-						<option value="cancelled">Cancelled</option>
+						<option value="pending">0</option>
+						<option value="confirmed">1</option>
+						<option value="cancelled">2</option>
 					</select>
 				</div>
             -->
@@ -76,6 +98,7 @@
 							<th class="pb-3">Booking ID</th>
 							<th class="pb-3">Image</th>
 							<th class="pb-3">Accommodation</th>
+							<th class="pb-3">Guests</th>
 							<th class="pb-3">Check-In</th>
 							<th class="pb-3">Check-Out</th>
 							<th class="pb-3">Status</th>
@@ -93,6 +116,7 @@
 								/>
 							</td>
 							<td class="py-3.5 font-bold text-brand-dark">{{ booking.accommodation_title || booking.accommodation_name || ('Accommodation #' + booking.accommodation_id) }}</td>
+							<td class="py-3.5 text-gray-600">{{ booking.adults || 0 }} adults, {{ booking.kids || 0 }} kids, {{ booking.babies || 0 }} babies</td>
 							<td class="py-3.5 text-gray-600">{{ formatDate(booking.check_in_date || booking.booking_date) }}</td>
 							<td class="py-3.5 text-gray-600">{{ formatDate(booking.check_out_date) }}</td>
 							<td class="py-3.5">
@@ -139,6 +163,9 @@ export default {
 				accommodation_id: '',
 				check_in_date: new Date().toISOString().slice(0, 10),
 				check_out_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+				adults: 1,
+				kids: 0,
+				babies: 0,
 				status: 'pending'
 			}
 		};
@@ -149,6 +176,39 @@ export default {
 		},
 		selectedAccommodation() {
 			return this.availableAccommodations.find((item) => String(item.id) === String(this.bookingForm.accommodation_id)) || null;
+		},
+		totalGuests() {
+			return Number(this.bookingForm.adults || 0) + Number(this.bookingForm.kids || 0) + Number(this.bookingForm.babies || 0);
+		},
+		bookingLimits() {
+			if (!this.selectedAccommodation) {
+				return {
+					maxAdults: 10,
+					maxKids: 10,
+					maxBabies: 10,
+					maxGuests: 30,
+					usesFallback: true
+				};
+			}
+
+			const maxAdults = Number(this.selectedAccommodation.max_adults);
+			const maxKids = Number(this.selectedAccommodation.max_kids);
+			const maxBabies = Number(this.selectedAccommodation.max_babies);
+			const maxGuests = Number(this.selectedAccommodation.max_guests);
+			const hasMaxGuests = Number.isFinite(maxGuests) && maxGuests > 0;
+			const maxGuestsSafe = hasMaxGuests ? maxGuests : 30;
+			const hasAdults = Number.isFinite(maxAdults) && maxAdults > 0;
+			const hasKids = Number.isFinite(maxKids) && maxKids >= 0;
+			const hasBabies = Number.isFinite(maxBabies) && maxBabies >= 0;
+			const usesFallback = !hasAdults || !hasKids || !hasBabies;
+
+			return {
+				maxAdults: hasAdults ? maxAdults : maxGuestsSafe,
+				maxKids: hasKids ? maxKids : maxGuestsSafe,
+				maxBabies: hasBabies ? maxBabies : maxGuestsSafe,
+				maxGuests: maxGuestsSafe,
+				usesFallback
+			};
 		}
 	},
 	async created() {
@@ -244,12 +304,29 @@ export default {
 				return;
 			}
 
+			if (Number(this.bookingForm.adults) < 1 || Number(this.bookingForm.kids) < 0 || Number(this.bookingForm.babies) < 0) {
+				this.bookingAlertIsError = true;
+				this.bookingAlert = 'Please enter valid guest counts. Adults must be at least 1.';
+				this.submitting = false;
+				return;
+			}
+
+			if (Number(this.bookingForm.adults) > this.bookingLimits.maxAdults || Number(this.bookingForm.kids) > this.bookingLimits.maxKids || Number(this.bookingForm.babies) > this.bookingLimits.maxBabies || this.totalGuests > this.bookingLimits.maxGuests) {
+				this.bookingAlertIsError = true;
+				this.bookingAlert = `Guest count exceeds this accommodation limit. Allowed: ${this.bookingLimits.maxAdults} adults, ${this.bookingLimits.maxKids} kids, ${this.bookingLimits.maxBabies} babies, total ${this.bookingLimits.maxGuests}.`;
+				this.submitting = false;
+				return;
+			}
+
 			const payload = {
 				visitor_id: Number(this.currentUser.id),
 				accommodation_id: Number(this.bookingForm.accommodation_id),
 				booking_date: this.bookingForm.check_in_date,
 				check_in_date: this.bookingForm.check_in_date,
 				check_out_date: this.bookingForm.check_out_date,
+				adults: Number(this.bookingForm.adults),
+				kids: Number(this.bookingForm.kids),
+				babies: Number(this.bookingForm.babies),
 				status: 'pending'
 			};
 
@@ -280,6 +357,27 @@ export default {
 			}
 
 			return date.toLocaleDateString();
+		},
+		accommodationTypeLabel(item) {
+			const explicitType = String(item?.accommodation_type || '').trim().toLowerCase();
+			if (explicitType) {
+				return explicitType;
+			}
+
+			const propertyType = String(item?.property_type || '').trim().toLowerCase();
+			if (propertyType === 'cabins' || propertyType === 'cabin') {
+				return 'cabin';
+			}
+
+			if (propertyType === 'rooms' || propertyType === 'room') {
+				return 'room';
+			}
+
+			return 'Not specified';
+		},
+		bedTypeLabel(item) {
+			const bedType = String(item?.bed_type || '').trim().toLowerCase();
+			return bedType || 'Not specified';
 		},
 		bookingImageUrl(value) {
 			if (!value) {
