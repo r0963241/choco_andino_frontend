@@ -35,6 +35,7 @@
             :property-alert="propertyAlert"
             :property-uploaded-image-url="propertyUploadedImageUrl"
             :owner-booking-requests="ownerBookingRequests"
+            :owner-revenue-report="ownerRevenueReport"
             :owner-booking-alert="ownerBookingAlert"
             :property-form-reset-key="propertyFormResetKey"
             :uploading-target="uploadingTarget"
@@ -61,6 +62,7 @@
           :current-user="currentUser"
           :pending-listings="pendingListings"
           :pending-count="pendingCount"
+          :admin-revenue-report="adminRevenueReport"
           :selected-status="adminStatusFilter"
           :admin-alert="adminAlert"
           :processing-ids="processingIds"
@@ -95,6 +97,8 @@ export default {
       pendingListings: [],
       pendingCount: 0,
       ownerBookingRequests: [],
+      ownerRevenueReport: [],
+      adminRevenueReport: [],
       propertyAlert: '',
       accommodationAlert: '',
       adminAlert: '',
@@ -128,12 +132,17 @@ export default {
     this.currentUser = JSON.parse(storedUser);
 
     if (this.currentUser.role === 'owner') {
-      await Promise.all([this.loadOwnerProperties(), this.loadOwnerAccommodations(), this.loadOwnerBookingRequests()]);
+      await Promise.all([
+        this.loadOwnerProperties(),
+        this.loadOwnerAccommodations(),
+        this.loadOwnerBookingRequests(),
+        this.loadOwnerRevenueReport()
+      ]);
       this.startOwnerBookingPolling();
     }
 
     if (this.currentUser.role === 'admin') {
-      await this.loadPendingListings();
+      await Promise.all([this.loadPendingListings(), this.loadAdminRevenueReport()]);
       this.startAdminQueuePolling();
     }
   },
@@ -189,6 +198,24 @@ export default {
         this.ownerBookingAlert = err.response?.data?.message || 'Failed to load booking requests.';
       }
     },
+    async loadOwnerRevenueReport() {
+      try {
+        const response = await axios.get(`http://localhost:3000/api/bookings/owner/${this.currentUser.id}/revenue/monthly`);
+        this.ownerRevenueReport = response.data || [];
+      } catch (err) {
+        console.error('Error loading owner revenue report:', err);
+        this.ownerBookingAlert = err.response?.data?.message || 'Failed to load owner revenue report.';
+      }
+    },
+    async loadAdminRevenueReport() {
+      try {
+        const response = await axios.get('http://localhost:3000/api/bookings/revenue/monthly');
+        this.adminRevenueReport = response.data || [];
+      } catch (err) {
+        console.error('Error loading admin revenue report:', err);
+        this.adminAlert = err.response?.data?.message || 'Failed to load monthly revenue report.';
+      }
+    },
     handleAdminStatusChange(status) {
       this.adminStatusFilter = status;
       this.loadPendingListings();
@@ -197,6 +224,7 @@ export default {
       this.stopAdminQueuePolling();
       this.adminQueuePoller = window.setInterval(() => {
         this.loadPendingListings();
+        this.loadAdminRevenueReport();
       }, 5000);
     },
     stopAdminQueuePolling() {
@@ -209,6 +237,7 @@ export default {
       this.stopOwnerBookingPolling();
       this.ownerBookingPoller = window.setInterval(() => {
         this.loadOwnerBookingRequests();
+        this.loadOwnerRevenueReport();
       }, 5000);
     },
     stopOwnerBookingPolling() {
@@ -298,7 +327,7 @@ export default {
           status
         });
         this.ownerBookingAlert = `Booking ${status} successfully.`;
-        await this.loadOwnerBookingRequests();
+        await Promise.all([this.loadOwnerBookingRequests(), this.loadOwnerRevenueReport()]);
       } catch (err) {
         console.error('Error moderating owner booking request:', err);
         this.ownerBookingAlert = err.response?.data?.message || 'Failed to update booking request.';

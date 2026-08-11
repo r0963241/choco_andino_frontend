@@ -78,6 +78,46 @@
           </div>
         </article>
       </div>
+
+      <div class="mt-8 border-t border-green-100 pt-6">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+          <div>
+            <h4 class="text-base font-bold text-brand-dark">Monthly Revenue by Property</h4>
+            <p class="text-xs text-gray-500 mt-1">Global reporting view across all owners.</p>
+          </div>
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-medium">{{ adminRevenueReport.length }} rows</span>
+        </div>
+
+        <div v-if="adminRevenueReport.length === 0" class="text-sm text-gray-500">No revenue records available yet.</div>
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-gray-100 text-[11px] uppercase font-bold text-brand-medium tracking-wider">
+                <th class="pb-3">Month</th>
+                <th class="pb-3">Property</th>
+                <th class="pb-3">Owner</th>
+                <th class="pb-3">Bookings</th>
+                <th class="pb-3">Confirmed</th>
+                <th class="pb-3">Cancelled</th>
+                <th class="pb-3">Declined</th>
+                <th class="pb-3 text-right">Revenue</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
+              <tr v-for="row in adminRevenueReport" :key="`${row.report_month}-${row.property_id}-${row.owner_id}`">
+                <td class="py-3.5 text-gray-600">{{ formatMonth(row.report_month) }}</td>
+                <td class="py-3.5 font-semibold text-brand-dark">{{ row.property_title || ('Property #' + row.property_id) }}</td>
+                <td class="py-3.5 text-gray-600">{{ row.owner_name || ('Owner #' + row.owner_id) }}</td>
+                <td class="py-3.5 text-gray-600">{{ Number(row.total_bookings || 0) }}</td>
+                <td class="py-3.5 text-green-700 font-semibold">{{ Number(row.confirmed_bookings || 0) }}</td>
+                <td class="py-3.5 text-red-700 font-semibold">{{ Number(row.cancelled_bookings || 0) }}</td>
+                <td class="py-3.5 text-amber-700 font-semibold">{{ Number(row.declined_bookings || 0) }}</td>
+                <td class="py-3.5 text-right font-bold text-brand-dark">{{ formatCurrency(row.revenue_total) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -96,6 +136,10 @@ export default {
     pendingCount: {
       type: Number,
       default: 0
+    },
+    adminRevenueReport: {
+      type: Array,
+      default: () => []
     },
     selectedStatus: {
       type: String,
@@ -131,6 +175,29 @@ export default {
         dateStyle: 'medium',
         timeStyle: 'short'
       }).format(new Date(value));
+    },
+    formatMonth(value) {
+      if (!value) {
+        return 'Unknown';
+      }
+
+      const parsed = new Date(`${value}-01T00:00:00`);
+      if (Number.isNaN(parsed.getTime())) {
+        return String(value);
+      }
+
+      return new Intl.DateTimeFormat('en-GB', {
+        month: 'long',
+        year: 'numeric'
+      }).format(parsed);
+    },
+    formatCurrency(value) {
+      const amount = Number(value || 0);
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 2
+      }).format(amount);
     }
   }
 };

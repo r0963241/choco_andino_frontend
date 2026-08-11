@@ -102,7 +102,7 @@
 							<th class="pb-3">Check-In</th>
 							<th class="pb-3">Check-Out</th>
 							<th class="pb-3">Status</th>
-							<th class="pb-3 text-right">Action</th>
+							<th class="pb-3 text-right">Cancel Booking</th>
 						</tr>
 					</thead>
 					<tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
