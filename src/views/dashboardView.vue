@@ -20,19 +20,35 @@
 
       <!-- DYNAMIC ROLE INTERFACE VIEW INJECTION PORTAL -->
       <div class="fade-in-tab">
-        <visitorDashboardView v-if="currentUser.role === 'visitor'" :current-user="currentUser" />
+        <bookingDashboardView v-if="currentUser.role === 'visitor'" :current-user="currentUser" />
 
-        <ownerDashboardView
-          v-else-if="currentUser.role === 'owner'"
-          :current-user="currentUser"
-          :owner-listings="ownerListings"
-          :form-alert="formAlert"
-          :uploaded-image-url="uploadedImageUrl"
-          :form-reset-key="formResetKey"
-          :uploading-image="uploadingImage"
-          @submit="submitAccommodation"
-          @image-upload="handleImageUpload"
-        />
+        <div v-else-if="currentUser.role === 'owner'" class="space-y-8">
+          <ownerDashboardView
+            :current-user="currentUser"
+            :owner-properties="ownerProperties"
+            :property-alert="propertyAlert"
+            :property-uploaded-image-url="propertyUploadedImageUrl"
+            :owner-booking-requests="ownerBookingRequests"
+            :owner-booking-alert="ownerBookingAlert"
+            :property-form-reset-key="propertyFormResetKey"
+            :uploading-target="uploadingTarget"
+            @submit-property="submitProperty"
+            @image-upload="handleImageUpload"
+            @booking-moderation="handleOwnerBookingModeration"
+          />
+
+          <accomodationDashboardView
+            :current-user="currentUser"
+            :owner-properties="ownerProperties"
+            :owner-accommodations="ownerAccommodations"
+            :accommodation-alert="accommodationAlert"
+            :accommodation-uploaded-image-url="accommodationUploadedImageUrl"
+            :accommodation-form-reset-key="accommodationFormResetKey"
+            :uploading-target="uploadingTarget"
+            @submit-accommodation="submitAccommodation"
+            @image-upload="handleImageUpload"
+          />
+        </div>
 
         <adminDashboardView
           v-else-if="currentUser.role === 'admin'"
@@ -53,27 +69,35 @@
 
 <script>
 import axios from 'axios';
-import visitorDashboardView from './visitorDashboardView.vue';
+import accomodationDashboardView from './accomodationDashboardView.vue';
+import bookingDashboardView from './bookingDashboardView.vue';
 import ownerDashboardView from './ownerDashboardView.vue';
 import adminDashboardView from './adminDashboardView.vue';
 
 export default {
   components: {
-    visitorDashboardView,
+    accomodationDashboardView,
+    bookingDashboardView,
     ownerDashboardView,
     adminDashboardView
   },
   data() {
     return {
       currentUser: { name: 'Explorer', role: 'visitor' },
-      ownerListings: [],
+      ownerProperties: [],
+      ownerAccommodations: [],
       pendingListings: [],
       pendingCount: 0,
-      formAlert: '',
+      ownerBookingRequests: [],
+      propertyAlert: '',
+      accommodationAlert: '',
       adminAlert: '',
-      uploadedImageUrl: '',
-      formResetKey: 0,
-      uploadingImage: false,
+      ownerBookingAlert: '',
+      propertyUploadedImageUrl: '',
+      accommodationUploadedImageUrl: '',
+      propertyFormResetKey: 0,
+      accommodationFormResetKey: 0,
+      uploadingTarget: '',
       processingIds: [],
       adminQueuePoller: null,
       adminStatusFilter: 'pending'
@@ -92,7 +116,7 @@ export default {
     this.currentUser = JSON.parse(storedUser);
 
     if (this.currentUser.role === 'owner') {
-      await this.loadOwnerListings();
+      await Promise.all([this.loadOwnerProperties(), this.loadOwnerAccommodations(), this.loadOwnerBookingRequests()]);
     }
 
     if (this.currentUser.role === 'admin') {
@@ -109,10 +133,18 @@ export default {
       localStorage.removeItem('userData');
       this.$router.push('/login');
     },
-    async loadOwnerListings() {
+    async loadOwnerProperties() {
+      try {
+        const response = await axios.get(`http://localhost:3000/api/accommodations/properties/owner/${this.currentUser.id}`);
+        this.ownerProperties = response.data;
+      } catch (err) {
+        console.error('Error loading owner properties:', err);
+      }
+    },
+    async loadOwnerAccommodations() {
       try {
         const response = await axios.get(`http://localhost:3000/api/accommodations/owner/${this.currentUser.id}`);
-        this.ownerListings = response.data;
+        this.ownerAccommodations = response.data;
       } catch (err) {
         console.error('Error loading owner accommodations:', err);
       }
@@ -120,8 +152,8 @@ export default {
     async loadPendingListings() {
       try {
         const [filteredResponse, pendingResponse] = await Promise.all([
-          axios.get(`http://localhost:3000/api/accommodations/pending?status=${this.adminStatusFilter}`),
-          axios.get('http://localhost:3000/api/accommodations/pending?status=pending')
+          axios.get(`http://localhost:3000/api/accommodations/properties/pending?status=${this.adminStatusFilter}`),
+          axios.get('http://localhost:3000/api/accommodations/properties/pending?status=pending')
         ]);
 
         this.pendingListings = filteredResponse.data;
@@ -132,6 +164,15 @@ export default {
       } catch (err) {
         console.error('Error loading pending accommodations:', err);
         this.adminAlert = 'Failed to load moderation queue.';
+      }
+    },
+    async loadOwnerBookingRequests() {
+      try {
+        const response = await axios.get(`http://localhost:3000/api/bookings/owner/${this.currentUser.id}?status=all`);
+        this.ownerBookingRequests = response.data;
+      } catch (err) {
+        console.error('Error loading owner booking requests:', err);
+        this.ownerBookingAlert = err.response?.data?.message || 'Failed to load booking requests.';
       }
     },
     handleAdminStatusChange(status) {
@@ -151,10 +192,11 @@ export default {
       }
     },
     async handleImageUpload(event) {
-      const file = event.target.files[0];
+      const { event: inputEvent, target } = event;
+      const file = inputEvent.target.files[0];
       if (!file) return;
 
-      this.uploadingImage = true;
+      this.uploadingTarget = target;
       const formData = new FormData();
       formData.append('image', file);
 
@@ -163,17 +205,26 @@ export default {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
 
-        this.uploadedImageUrl = response.data.imageUrl;
-        this.formAlert = '📸 Image uploaded successfully.';
+        if (target === 'property') {
+          this.propertyUploadedImageUrl = response.data.imageUrl;
+          this.propertyAlert = '📸 Property image uploaded successfully.';
+        } else {
+          this.accommodationUploadedImageUrl = response.data.imageUrl;
+          this.accommodationAlert = '📸 Accommodation image uploaded successfully.';
+        }
       } catch (err) {
         console.error('Image upload failed:', err);
-        this.formAlert = 'Failed to upload image.';
+        if (target === 'property') {
+          this.propertyAlert = 'Failed to upload property image.';
+        } else {
+          this.accommodationAlert = 'Failed to upload accommodation image.';
+        }
       } finally {
-        this.uploadingImage = false;
+        this.uploadingTarget = '';
       }
     },
-    async submitAccommodation(formPayload) {
-      this.formAlert = '';
+    async submitProperty(formPayload) {
+      this.propertyAlert = '';
       
       const payload = {
         ...formPayload,
@@ -182,14 +233,49 @@ export default {
       };
 
       try {
-        await axios.post('http://localhost:3000/api/accommodations', payload);
-        await this.loadOwnerListings();
-        this.formAlert = '🎉 Property submission sent for admin approval.';
-        this.uploadedImageUrl = '';
-        this.formResetKey += 1;
+        await axios.post('http://localhost:3000/api/accommodations/properties', payload);
+        await this.loadOwnerProperties();
+        this.propertyAlert = '🎉 Property submission sent for admin approval.';
+        this.propertyUploadedImageUrl = '';
+        this.propertyFormResetKey += 1;
       } catch (err) {
-        console.error('Error submitting infrastructure resource configuration path:', err);
-        this.formAlert = err.response?.data?.message || 'Failed to save accommodation.';
+        console.error('Error submitting property:', err);
+        this.propertyAlert = err.response?.data?.message || 'Failed to save property.';
+      }
+    },
+    async submitAccommodation(formPayload) {
+      this.accommodationAlert = '';
+
+      const payload = {
+        ...formPayload,
+        owner_id: this.currentUser.id || 1,
+        status: 'approved'
+      };
+
+      try {
+        await axios.post('http://localhost:3000/api/accommodations', payload);
+        await this.loadOwnerAccommodations();
+        this.accommodationAlert = '🎉 Accommodation created successfully.';
+        this.accommodationUploadedImageUrl = '';
+        this.accommodationFormResetKey += 1;
+      } catch (err) {
+        console.error('Error submitting accommodation:', err);
+        this.accommodationAlert = err.response?.data?.message || 'Failed to save accommodation.';
+      }
+    },
+    async handleOwnerBookingModeration({ id, status }) {
+      this.ownerBookingAlert = '';
+
+      try {
+        await axios.patch(`http://localhost:3000/api/bookings/${id}/status`, {
+          owner_id: this.currentUser.id,
+          status
+        });
+        this.ownerBookingAlert = `Booking ${status} successfully.`;
+        await this.loadOwnerBookingRequests();
+      } catch (err) {
+        console.error('Error moderating owner booking request:', err);
+        this.ownerBookingAlert = err.response?.data?.message || 'Failed to update booking request.';
       }
     },
     async handleModeration({ id, status }) {
@@ -197,8 +283,8 @@ export default {
       this.processingIds = [...this.processingIds, id];
 
       try {
-        await axios.patch(`http://localhost:3000/api/accommodations/${id}/status`, { status });
-        this.adminAlert = `Listing ${status} successfully.`;
+        await axios.patch(`http://localhost:3000/api/accommodations/properties/${id}/status`, { status });
+        this.adminAlert = `Property ${status} successfully.`;
         await this.loadPendingListings();
       } catch (err) {
         console.error('Error updating listing status:', err);

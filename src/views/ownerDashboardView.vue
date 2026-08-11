@@ -17,53 +17,49 @@
 
       <div class="bg-white p-6 rounded-xl border border-green-100 shadow-sm backdrop-blur-md bg-white/95">
         <h3 class="text-lg font-bold text-brand-dark mt-0 mb-1">Register a New Property</h3>
-        <p class="text-xs text-gray-500 mb-4">Submit a new property and define how many accommodations it contains for admin review.</p>
+        <p class="text-xs text-gray-500 mb-4">Submit the parent property first. Nightly pricing now lives on the accommodation form.</p>
 
-        <form @submit.prevent="submitForm" class="space-y-4">
+        <form @submit.prevent="submitPropertyForm" class="space-y-4">
           <div>
             <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Property Name</label>
-            <input v-model="form.title" type="text" placeholder="e.g., Mindo Hummingbird Pod" class="choco-input text-sm" required />
+            <input v-model="propertyForm.title" type="text" placeholder="e.g., Mindo Hummingbird Pod" class="choco-input text-sm" required />
           </div>
           <div>
             <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Address</label>
-            <input v-model="form.address" type="text" placeholder="e.g., Quito - Mindo Road 12" class="choco-input text-sm" required />
+            <input v-model="propertyForm.address" type="text" placeholder="e.g., Quito - Mindo Road 12" class="choco-input text-sm" required />
           </div>
           <div>
             <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Property Type</label>
-            <select v-model="form.property_type" class="choco-input text-sm" required>
+            <select v-model="propertyForm.property_type" class="choco-input text-sm" required>
               <option value="rooms">Rooms</option>
               <option value="cabins">Cabins</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Number of Accommodations</label>
-            <input v-model="form.unit_count" type="number" placeholder="4" class="choco-input text-sm" required />
+            <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Number of Rooms / Cabins</label>
+            <input v-model="propertyForm.unit_count" type="number" min="1" placeholder="4" class="choco-input text-sm" required />
           </div>
           <div>
             <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Location Zone</label>
-            <input v-model="form.location" type="text" placeholder="e.g., Mindo Reserve" class="choco-input text-sm" required />
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Price Per Night (€)</label>
-            <input v-model="form.price_per_night" type="number" placeholder="85" class="choco-input text-sm" required />
+            <input v-model="propertyForm.location" type="text" placeholder="e.g., Mindo Reserve" class="choco-input text-sm" required />
           </div>
           <div>
             <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Sanctuary Description</label>
-            <textarea v-model="form.description" rows="3" placeholder="Describe the physical immersion context details..." class="choco-input text-sm resize-none" required></textarea>
+            <textarea v-model="propertyForm.description" rows="3" placeholder="Describe the physical immersion context details..." class="choco-input text-sm resize-none" required></textarea>
           </div>
           <div class="grid grid-cols-2 gap-3 text-sm text-gray-600">
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="form.has_ac" /> AC / Radiator</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="form.has_parking" /> Parking</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="form.has_room_service" /> Room Service</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="form.has_private_wc" /> Private WC</label>
+            <label class="flex items-center gap-2"><input type="checkbox" v-model="propertyForm.has_ac" /> AC / Radiator</label>
+            <label class="flex items-center gap-2"><input type="checkbox" v-model="propertyForm.has_parking" /> Parking</label>
+            <label class="flex items-center gap-2"><input type="checkbox" v-model="propertyForm.has_room_service" /> Room Service</label>
+            <label class="flex items-center gap-2"><input type="checkbox" v-model="propertyForm.has_private_wc" /> Private WC</label>
           </div>
           <div>
             <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Upload Image</label>
-            <input ref="imageInput" type="file" accept="image/*" @change="handleImageUpload" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-bg file:text-brand-medium hover:file:bg-green-100" />
-            <p v-if="uploadingImage" class="text-xs text-brand-medium mt-2">Uploading image...</p>
+            <input ref="propertyImageInput" type="file" accept="image/*" @change="handleImageUpload('property', $event)" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-bg file:text-brand-medium hover:file:bg-green-100" />
+            <p v-if="uploadingTarget === 'property'" class="text-xs text-brand-medium mt-2">Uploading image...</p>
           </div>
-          <div v-if="form.image_url" class="text-xs text-brand-medium">
-            Selected image: {{ form.image_url }}
+          <div v-if="propertyForm.image_url" class="text-xs text-brand-medium">
+            Selected image: {{ propertyForm.image_url }}
           </div>
 
           <button type="submit" class="choco-btn-primary text-xs uppercase tracking-wider py-2.5">
@@ -71,13 +67,78 @@
           </button>
         </form>
 
-        <p v-if="formAlert" class="mt-4 text-xs font-semibold p-2.5 bg-brand-bg text-brand-medium border border-green-100 rounded-lg text-center">
-          {{ formAlert }}
+        <p v-if="propertyAlert" class="mt-4 text-xs font-semibold p-2.5 bg-brand-bg text-brand-medium border border-green-100 rounded-lg text-center">
+          {{ propertyAlert }}
         </p>
       </div>
     </div>
 
     <div class="lg:col-span-2 space-y-6">
+      <div class="bg-white p-6 rounded-xl border border-green-100 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-brand-dark mt-0 mb-1">Booking Requests</h3>
+            <p class="text-xs text-gray-500">Confirm or decline visitor requests for your accommodations.</p>
+          </div>
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-medium">{{ pendingBookingCount }} pending</span>
+        </div>
+
+        <p v-if="ownerBookingAlert" class="mb-4 text-xs font-semibold p-2.5 bg-brand-bg text-brand-medium border border-green-100 rounded-lg text-center">
+          {{ ownerBookingAlert }}
+        </p>
+
+        <div v-if="ownerBookingRequests.length === 0" class="text-sm text-gray-500">No booking requests found.</div>
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-gray-100 text-[11px] uppercase font-bold text-brand-medium tracking-wider">
+                <th class="pb-3">Booking</th>
+                <th class="pb-3">Accommodation</th>
+                <th class="pb-3">Visitor</th>
+                <th class="pb-3">Dates</th>
+                <th class="pb-3">Status</th>
+                <th class="pb-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
+              <tr v-for="booking in ownerBookingRequests" :key="booking.id">
+                <td class="py-3.5 font-bold text-brand-dark">#{{ booking.id }}</td>
+                <td class="py-3.5 text-gray-600">{{ booking.accommodation_title || ('Accommodation #' + booking.accommodation_id) }}</td>
+                <td class="py-3.5 text-gray-600">{{ booking.visitor_name || booking.visitor_email || ('Visitor #' + booking.visitor_id) }}</td>
+                <td class="py-3.5 text-gray-500">{{ formatDate(booking.check_in_date || booking.booking_date) }} - {{ formatDate(booking.check_out_date) }}</td>
+                <td class="py-3.5">
+                  <span
+                    class="px-2 py-0.5 border text-[10px] font-bold uppercase rounded"
+                    :class="statusBadgeClass(booking.status)"
+                  >
+                    {{ booking.status || 'pending' }}
+                  </span>
+                </td>
+                <td class="py-3.5 text-right">
+                  <div v-if="booking.status === 'pending'" class="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      class="px-3 py-1.5 rounded border border-green-200 bg-green-50 text-green-700 text-[11px] font-bold uppercase tracking-wide hover:bg-green-100"
+                      @click="moderateBooking(booking.id, 'confirmed')"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      type="button"
+                      class="px-3 py-1.5 rounded border border-red-200 bg-red-50 text-red-700 text-[11px] font-bold uppercase tracking-wide hover:bg-red-100"
+                      @click="moderateBooking(booking.id, 'declined')"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                  <span v-else class="text-xs text-gray-400 font-semibold uppercase">Processed</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="grid grid-cols-3 gap-4">
         <div class="bg-white p-4 rounded-xl border border-green-100 shadow-sm text-center">
           <span class="block text-2xl font-black text-brand-dark">{{ approvedCount }}</span>
@@ -94,29 +155,40 @@
       </div>
 
       <div class="bg-white p-6 rounded-xl border border-green-100 shadow-sm">
-        <h3 class="text-lg font-bold text-brand-dark mt-0 mb-4">Your Property Submissions</h3>
-        <div v-if="ownerListings.length === 0" class="text-sm text-gray-500">No submissions yet.</div>
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-brand-dark mt-0 mb-1">Last Property Submissions</h3>
+            <p class="text-xs text-gray-500">Latest submissions first, showing the most recent property records.</p>
+          </div>
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-medium">{{ ownerProperties.length }} total submissions</span>
+        </div>
+        <div v-if="ownerProperties.length === 0" class="text-sm text-gray-500">No property submissions yet.</div>
         <div v-else class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-gray-100 text-[11px] uppercase font-bold text-brand-medium tracking-wider">
                 <th class="pb-3">Property Name</th>
-                <th class="pb-3">Owner</th>
+                <th class="pb-3">Type</th>
+                <th class="pb-3">Address</th>
                 <th class="pb-3">Location</th>
-                <th class="pb-3">Accommodations</th>
-                <th class="pb-3">Base Price</th>
+                <th class="pb-3">Rooms / Cabins</th>
+                <th class="pb-3">Submitted</th>
                 <th class="pb-3 text-right">Status</th>
               </tr>
             </thead>
             <tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
-              <tr v-for="item in ownerListings" :key="item.id">
+              <tr v-for="item in ownerProperties" :key="item.id">
                 <td class="py-3.5 font-bold text-brand-dark">{{ item.title }}</td>
-                <td class="py-3.5 text-gray-600">{{ item.owner_name || currentUser.name }}</td>
+                <td class="py-3.5 text-gray-600 capitalize">{{ item.property_type || 'property' }}</td>
+                <td class="py-3.5 text-gray-500">{{ item.address || 'Not provided' }}</td>
                 <td class="py-3.5 text-gray-500">{{ item.location }}</td>
                 <td class="py-3.5 text-gray-600">{{ item.unit_count || 0 }}</td>
-                <td class="py-3.5 text-brand-medium font-bold">${{ item.price_per_night }}</td>
+                <td class="py-3.5 text-gray-500">{{ formatDate(item.created_at) }}</td>
                 <td class="py-3.5 text-right">
-                  <span class="px-2 py-0.5 bg-brand-bg text-brand-medium border border-green-100 text-[10px] font-bold uppercase rounded">
+                  <span
+                    class="px-2 py-0.5 border text-[10px] font-bold uppercase rounded"
+                    :class="statusBadgeClass(item.status)"
+                  >
                     {{ item.status || 'pending' }}
                   </span>
                 </td>
@@ -136,61 +208,71 @@ export default {
       type: Object,
       required: true
     },
-    ownerListings: {
+    ownerProperties: {
       type: Array,
       default: () => []
     },
-    formAlert: {
+    propertyAlert: {
       type: String,
       default: ''
     },
-    uploadedImageUrl: {
+    propertyUploadedImageUrl: {
       type: String,
       default: ''
     },
-    formResetKey: {
+    ownerBookingRequests: {
+      type: Array,
+      default: () => []
+    },
+    ownerBookingAlert: {
+      type: String,
+      default: ''
+    },
+    propertyFormResetKey: {
       type: Number,
       default: 0
     },
-    uploadingImage: {
-      type: Boolean,
-      default: false
+    uploadingTarget: {
+      type: String,
+      default: ''
     }
   },
-  emits: ['submit', 'image-upload', 'logout'],
+  emits: ['submit-property', 'image-upload', 'logout', 'booking-moderation'],
   data() {
     return {
-      form: this.getInitialForm()
+      propertyForm: this.getInitialPropertyForm()
     };
   },
   watch: {
-    uploadedImageUrl(newValue) {
-      this.form.image_url = newValue || '';
+    propertyUploadedImageUrl(newValue) {
+      this.propertyForm.image_url = newValue || '';
     },
-    formResetKey() {
-      this.resetForm();
+    propertyFormResetKey() {
+      this.resetPropertyForm();
     }
   },
   computed: {
     approvedCount() {
-      return this.ownerListings.filter((item) => item.status === 'approved').length;
+      return this.ownerProperties.filter((item) => item.status === 'approved').length;
     },
     pendingCount() {
-      return this.ownerListings.filter((item) => item.status === 'pending').length;
+      return this.ownerProperties.filter((item) => item.status === 'pending').length;
     },
     hasApprovedListings() {
       return this.approvedCount > 0;
+    },
+    pendingBookingCount() {
+      return this.ownerBookingRequests.filter((item) => item.status === 'pending').length;
     }
   },
   methods: {
-    getInitialForm() {
+    getInitialPropertyForm() {
       return {
         title: '',
         address: '',
         property_type: 'rooms',
         unit_count: '',
         location: '',
-        price_per_night: '',
         description: '',
         has_ac: false,
         has_parking: false,
@@ -199,21 +281,45 @@ export default {
         image_url: ''
       };
     },
-    resetForm() {
-      this.form = this.getInitialForm();
-      if (this.$refs.imageInput) {
-        this.$refs.imageInput.value = '';
+    resetPropertyForm() {
+      this.propertyForm = this.getInitialPropertyForm();
+      if (this.$refs.propertyImageInput) {
+        this.$refs.propertyImageInput.value = '';
       }
     },
-    submitForm() {
-      this.$emit('submit', {
-        ...this.form,
+    submitPropertyForm() {
+      this.$emit('submit-property', {
+        ...this.propertyForm,
         owner_id: this.currentUser.id || 1,
         status: 'pending'
       });
     },
-    handleImageUpload(event) {
-      this.$emit('image-upload', event);
+    formatDate(value) {
+      if (!value) {
+        return 'Unknown';
+      }
+
+      return new Intl.DateTimeFormat('en-GB', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      }).format(new Date(value));
+    },
+    statusBadgeClass(status) {
+      if (status === 'approved') {
+        return 'bg-green-50 text-green-700 border-green-200';
+      }
+
+      if (status === 'rejected') {
+        return 'bg-red-50 text-red-700 border-red-200';
+      }
+
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+    },
+    handleImageUpload(target, event) {
+      this.$emit('image-upload', { target, event });
+    },
+    moderateBooking(id, status) {
+      this.$emit('booking-moderation', { id, status });
     }
   }
 };
