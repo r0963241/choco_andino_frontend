@@ -24,6 +24,62 @@
         </button>
       </header>
 
+      <section class="mb-8 bg-white rounded-2xl border border-green-100 shadow-sm p-5">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <div class="flex items-center gap-4">
+            <img
+              :src="currentUser.profile_photo || defaultProfilePhoto"
+              alt="Profile photo"
+              class="w-16 h-16 rounded-full object-cover border-2 border-green-200 shadow-sm"
+              @error="onProfileImageError"
+            />
+            <div>
+              <p class="text-[10px] uppercase font-bold tracking-wider text-brand-medium">Profile settings</p>
+              <h2 class="text-xl font-black text-brand-dark mt-1">Account details</h2>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="cursor-pointer inline-flex items-center justify-center px-3 py-2 border border-green-200 rounded-lg bg-brand-bg text-brand-medium text-[10px] font-bold uppercase tracking-wider hover:bg-green-100">
+              Upload photo
+              <input type="file" accept="image/*" class="hidden" @change="handleProfilePhotoUpload" />
+            </label>
+            <button
+              type="button"
+              @click="saveProfileChanges"
+              class="px-4 py-2 bg-brand-medium text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-brand-dark transition"
+            >
+              Save changes
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="lg:col-span-2">
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-brand-medium mb-2">Display name</label>
+            <input v-model="profileForm.name" type="text" class="choco-input text-sm" placeholder="Your name" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-brand-medium mb-2">New password</label>
+            <input v-model="profileForm.password" type="password" class="choco-input text-sm" placeholder="Leave blank to keep current" />
+          </div>
+        </div>
+
+        <div v-if="profileFeedback" class="mt-4 text-xs font-semibold p-2.5 rounded-lg border" :class="profileFeedbackType === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'">
+          {{ profileFeedback }}
+        </div>
+
+        <div class="mt-5 flex justify-end">
+          <button
+            type="button"
+            @click="deleteAccount"
+            class="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[10px] font-bold uppercase tracking-wider rounded-lg transition"
+          >
+            Deactivate account
+          </button>
+        </div>
+      </section>
+
       <!-- DYNAMIC ROLE INTERFACE VIEW INJECTION PORTAL -->
       <div class="fade-in-tab">
         <bookingDashboardView v-if="currentUser.role === 'visitor'" :current-user="currentUser" />
@@ -111,7 +167,16 @@ export default {
       processingIds: [],
       adminQueuePoller: null,
       ownerBookingPoller: null,
-      adminStatusFilter: 'pending'
+      adminStatusFilter: 'pending',
+      defaultProfilePhoto: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80',
+      profileForm: {
+        name: '',
+        password: '',
+        profile_photo: ''
+      },
+      profileFeedback: '',
+      profileFeedbackType: 'success',
+      profilePhotoUploading: false
     };
   },
   computed: {
@@ -130,6 +195,8 @@ export default {
     }
 
     this.currentUser = JSON.parse(storedUser);
+
+    this.syncProfileForm();
 
     if (this.currentUser.role === 'owner') {
       await Promise.all([
@@ -151,6 +218,125 @@ export default {
     this.stopOwnerBookingPolling();
   },
   methods: {
+    syncProfileForm() {
+      this.profileForm = {
+        name: this.currentUser.name || '',
+        password: '',
+        profile_photo: this.currentUser.profile_photo || ''
+      };
+    },
+    onProfileImageError(event) {
+      event.target.src = this.defaultProfilePhoto;
+    },
+    async handleProfilePhotoUpload(event) {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+
+      this.profilePhotoUploading = true;
+      this.profileFeedback = 'Uploading profile photo...';
+      this.profileFeedbackType = 'success';
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const response = await axios.post('http://localhost:3000/api/upload-image', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        this.profileForm.profile_photo = response.data.imageUrl;
+        this.currentUser.profile_photo = response.data.imageUrl;
+        this.profileFeedback = 'Profile photo uploaded successfully.';
+        this.profileFeedbackType = 'success';
+        localStorage.setItem('userData', JSON.stringify(this.currentUser));
+      } catch (err) {
+        console.error('Profile photo upload failed:', err);
+        this.profileFeedback = 'Failed to upload profile photo.';
+        this.profileFeedbackType = 'error';
+      } finally {
+        this.profilePhotoUploading = false;
+        event.target.value = '';
+      }
+    },
+    async saveProfileChanges() {
+      if (!this.currentUser.id) {
+        this.profileFeedback = 'Session is missing user information.';
+        this.profileFeedbackType = 'error';
+        return;
+      }
+
+      if (!this.profileForm.name || !this.profileForm.name.trim()) {
+        this.profileFeedback = 'Please enter a name before saving.';
+        this.profileFeedbackType = 'error';
+        return;
+      }
+
+      try {
+        const payload = {
+          name: this.profileForm.name.trim(),
+          profile_photo: this.profileForm.profile_photo || this.currentUser.profile_photo || null,
+          ...(this.profileForm.password && this.profileForm.password.trim() ? { password: this.profileForm.password.trim() } : {})
+        };
+
+        const response = await axios.patch(`http://localhost:3000/api/auth/user/${this.currentUser.id}`, payload);
+
+        this.currentUser = {
+          ...this.currentUser,
+          name: response.data.user.name,
+          profile_photo: response.data.user.profile_photo || this.currentUser.profile_photo || null
+        };
+
+        localStorage.setItem('userData', JSON.stringify(this.currentUser));
+        this.profileForm.password = '';
+        this.profileFeedback = response.data.message || 'Profile updated successfully.';
+        this.profileFeedbackType = 'success';
+      } catch (err) {
+        console.error('Error updating profile:', err);
+        this.profileFeedback = err.response?.data?.message || 'Failed to update profile.';
+        this.profileFeedbackType = 'error';
+      }
+    },
+    async deleteAccount() {
+      if (!this.currentUser.id) {
+        this.profileFeedback = 'Session is missing user information.';
+        this.profileFeedbackType = 'error';
+        return;
+      }
+
+      const passwordValue = window.prompt('To confirm deletion, please enter your password:');
+      if (passwordValue === null) {
+        return;
+      }
+
+      if (!passwordValue.trim()) {
+        this.profileFeedback = 'Password confirmation is required to delete your account.';
+        this.profileFeedbackType = 'error';
+        return;
+      }
+
+      const confirmed = window.confirm('This will deactivate your account and block future sign-ins. Continue?');
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        await axios.delete(`http://localhost:3000/api/auth/user/${this.currentUser.id}`, {
+          data: { password: passwordValue }
+        });
+
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('userData');
+        this.profileFeedback = 'Account deactivated successfully.';
+        this.profileFeedbackType = 'success';
+        this.$router.push('/login');
+      } catch (err) {
+        console.error('Error deactivating account:', err);
+        this.profileFeedback = err.response?.data?.message || 'Failed to deactivate account.';
+        this.profileFeedbackType = 'error';
+      }
+    },
     handleLogout() {
       localStorage.removeItem('userToken');
       localStorage.removeItem('userData');
