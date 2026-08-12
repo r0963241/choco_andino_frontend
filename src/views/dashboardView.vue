@@ -40,45 +40,74 @@
           </div>
 
           <div class="flex items-center gap-2">
-            <label class="cursor-pointer inline-flex items-center justify-center px-3 py-2 border border-green-200 rounded-lg bg-brand-bg text-brand-medium text-[10px] font-bold uppercase tracking-wider hover:bg-green-100">
-              Upload photo
-              <input type="file" accept="image/*" class="hidden" @change="handleProfilePhotoUpload" />
-            </label>
-            <button
-              type="button"
-              @click="saveProfileChanges"
-              class="px-4 py-2 bg-brand-medium text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-brand-dark transition"
-            >
-              Save changes
-            </button>
-          </div>
-        </div>
-
-        <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div class="lg:col-span-2">
-            <label class="block text-[10px] font-bold uppercase tracking-wider text-brand-medium mb-2">Display name</label>
-            <input v-model="profileForm.name" type="text" class="choco-input text-sm" placeholder="Your name" />
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold uppercase tracking-wider text-brand-medium mb-2">New password</label>
-            <input v-model="profileForm.password" type="password" class="choco-input text-sm" placeholder="Leave blank to keep current" />
-          </div>
-        </div>
-
-        <div v-if="profileFeedback" class="mt-4 text-xs font-semibold p-2.5 rounded-lg border" :class="profileFeedbackType === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'">
-          {{ profileFeedback }}
-        </div>
-
-        <div class="mt-5 flex justify-end">
           <button
             type="button"
-            @click="deleteAccount"
-            class="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[10px] font-bold uppercase tracking-wider rounded-lg transition"
+            @click="openProfileSettings"
+            class="inline-flex items-center justify-center w-10 h-10 border border-green-200 rounded-lg bg-brand-bg text-brand-medium hover:bg-green-100 transition"
+            aria-label="Edit user settings"
+            title="Edit account settings"
           >
-            Deactivate account
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
+              <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.065 2.573c.94 1.543-.827 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.065c-1.543.94-3.31-.827-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.065-2.573c-.94-1.543.827-3.31 2.37-2.37.996.607 2.33.192 2.572-1.065Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+          <label class="cursor-pointer inline-flex items-center justify-center px-3 py-2 border border-green-200 rounded-lg bg-brand-bg text-brand-medium text-[10px] font-bold uppercase tracking-wider hover:bg-green-100">
+            Upload photo
+            <input type="file" accept="image/*" class="hidden" @change="handleProfilePhotoUpload" />
+          </label>
+          <button
+            type="button"
+            @click="saveProfileChanges"
+            class="px-4 py-2 bg-[#2E7D32] text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-[#1B5E20] transition border border-[#1B5E20] shadow-sm"
+          >
+            Save changes
           </button>
         </div>
-      </section>
+      </div>
+    </section>
+
+      <div v-if="showSettingsModal" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+        <div class="w-full max-w-xl rounded-2xl bg-white border border-green-100 shadow-2xl p-6">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <p class="text-[10px] uppercase font-bold tracking-wider text-brand-medium">Profile settings</p>
+              <h3 class="text-xl font-black text-brand-dark mt-1">Edit account details</h3>
+            </div>
+            <button type="button" @click="closeProfileSettings" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition text-lg leading-none">×</button>
+          </div>
+
+          <div class="space-y-5">
+            <div class="rounded-xl bg-brand-bg p-4 border border-green-100">
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-brand-medium mb-2">Display name</label>
+              <input v-model="profileForm.name" type="text" class="choco-input text-sm" placeholder="Your name" />
+            </div>
+
+            <div class="rounded-xl bg-brand-bg p-4 border border-green-100">
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-brand-medium mb-2">Date of birth</label>
+              <input v-model="profileForm.date_of_birth" type="date" class="choco-input text-sm" />
+            </div>
+
+            <div class="rounded-xl bg-brand-bg p-4 border border-green-100">
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-brand-medium mb-2">New password</label>
+              <input v-model="profileForm.password" type="password" class="choco-input text-sm" placeholder="Leave blank to keep current" />
+            </div>
+          </div>
+
+          <div class="mt-6 flex items-center justify-between gap-3">
+            <button type="button" @click="saveProfileChanges" class="flex-1 px-4 py-2.5 bg-[#2E7D32] text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-[#1B5E20] transition border border-[#1B5E20] shadow-md">
+              Save details
+            </button>
+            <button type="button" @click="confirmDeleteAccount" class="flex-1 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[10px] font-bold uppercase tracking-wider rounded-lg transition">
+              Delete account
+            </button>
+          </div>
+
+          <div v-if="profileFeedback" class="mt-4 text-xs font-semibold p-2.5 rounded-lg border" :class="profileFeedbackType === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'">
+            {{ profileFeedback }}
+          </div>
+        </div>
+      </div>
 
       <!-- DYNAMIC ROLE INTERFACE VIEW INJECTION PORTAL -->
       <div class="fade-in-tab">
@@ -171,12 +200,14 @@ export default {
       defaultProfilePhoto: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80',
       profileForm: {
         name: '',
+        date_of_birth: '',
         password: '',
         profile_photo: ''
       },
       profileFeedback: '',
       profileFeedbackType: 'success',
-      profilePhotoUploading: false
+      profilePhotoUploading: false,
+      showSettingsModal: false
     };
   },
   computed: {
@@ -218,9 +249,26 @@ export default {
     this.stopOwnerBookingPolling();
   },
   methods: {
+    formatDateForInput(value) {
+      if (!value) {
+        return '';
+      }
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return '';
+      }
+
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    },
     syncProfileForm() {
+      const rawDob = this.currentUser.date_of_birth || this.currentUser.dateOfBirth || '';
       this.profileForm = {
         name: this.currentUser.name || '',
+        date_of_birth: rawDob ? this.formatDateForInput(rawDob) : '',
         password: '',
         profile_photo: this.currentUser.profile_photo || ''
       };
@@ -276,6 +324,7 @@ export default {
       try {
         const payload = {
           name: this.profileForm.name.trim(),
+          date_of_birth: this.profileForm.date_of_birth || null,
           profile_photo: this.profileForm.profile_photo || this.currentUser.profile_photo || null,
           ...(this.profileForm.password && this.profileForm.password.trim() ? { password: this.profileForm.password.trim() } : {})
         };
@@ -285,6 +334,7 @@ export default {
         this.currentUser = {
           ...this.currentUser,
           name: response.data.user.name,
+          date_of_birth: response.data.user.date_of_birth || this.currentUser.date_of_birth || null,
           profile_photo: response.data.user.profile_photo || this.currentUser.profile_photo || null
         };
 
@@ -292,20 +342,29 @@ export default {
         this.profileForm.password = '';
         this.profileFeedback = response.data.message || 'Profile updated successfully.';
         this.profileFeedbackType = 'success';
+        this.showSettingsModal = false;
       } catch (err) {
         console.error('Error updating profile:', err);
         this.profileFeedback = err.response?.data?.message || 'Failed to update profile.';
         this.profileFeedbackType = 'error';
       }
     },
-    async deleteAccount() {
-      if (!this.currentUser.id) {
-        this.profileFeedback = 'Session is missing user information.';
-        this.profileFeedbackType = 'error';
+    openProfileSettings() {
+      this.syncProfileForm();
+      this.profileFeedback = '';
+      this.showSettingsModal = true;
+    },
+    closeProfileSettings() {
+      this.showSettingsModal = false;
+      this.profileFeedback = '';
+    },
+    confirmDeleteAccount() {
+      const firstConfirm = window.confirm('This will deactivate your account and block all future sign-ins. Continue?');
+      if (!firstConfirm) {
         return;
       }
 
-      const passwordValue = window.prompt('To confirm deletion, please enter your password:');
+      const passwordValue = window.prompt('Please enter your password to confirm account deletion:');
       if (passwordValue === null) {
         return;
       }
@@ -316,8 +375,17 @@ export default {
         return;
       }
 
-      const confirmed = window.confirm('This will deactivate your account and block future sign-ins. Continue?');
-      if (!confirmed) {
+      const finalConfirm = window.confirm('Final confirmation: delete this account permanently from active use? You can contact admin to re-open it later.');
+      if (!finalConfirm) {
+        return;
+      }
+
+      this.deleteAccount(passwordValue.trim());
+    },
+    async deleteAccount(passwordValue) {
+      if (!this.currentUser.id) {
+        this.profileFeedback = 'Session is missing user information.';
+        this.profileFeedbackType = 'error';
         return;
       }
 
@@ -328,7 +396,8 @@ export default {
 
         localStorage.removeItem('userToken');
         localStorage.removeItem('userData');
-        this.profileFeedback = 'Account deactivated successfully.';
+        this.showSettingsModal = false;
+        this.profileFeedback = 'Account deleted. Contact admin to re-open it.';
         this.profileFeedbackType = 'success';
         this.$router.push('/login');
       } catch (err) {

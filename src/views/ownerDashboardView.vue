@@ -342,8 +342,9 @@ export default {
       }
 
       return new Intl.DateTimeFormat('en-GB', {
-        dateStyle: 'medium',
-        timeStyle: 'short'
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
       }).format(new Date(value));
     },
     formatMonth(value) {
