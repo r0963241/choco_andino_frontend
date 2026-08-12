@@ -52,6 +52,10 @@
             <input v-model="registerForm.password" type="password" class="choco-input" />
           </div>
           <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Date of Birth</label>
+            <input v-model="registerForm.date_of_birth" type="date" class="choco-input" />
+          </div>
+          <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Account Role Type</label>
             <select v-model="registerForm.role" class="choco-input bg-white">
               <option value="visitor">Visitor (I want to book cabins)</option>
@@ -84,7 +88,7 @@ export default {
       alertMessage: '',
       isError: false,
       loginForm: { email: '', password: '' },
-      registerForm: { name: '', email: '', password: '', role: 'visitor' }
+      registerForm: { name: '', email: '', password: '', date_of_birth: '', role: 'visitor' }
     };
   },
   methods: {
@@ -112,9 +116,9 @@ export default {
     },
     async handleRegister() {
       this.alertMessage = '';
-      if (!this.registerForm.name || !this.registerForm.email || !this.registerForm.password) {
+      if (!this.registerForm.name || !this.registerForm.email || !this.registerForm.password || !this.registerForm.date_of_birth) {
         this.isError = true;
-        this.alertMessage = '⚠️ Missing vital input data parameters.';
+        this.alertMessage = '⚠️ Please fill in your full name, email, password, and date of birth.';
         return;
       }
       if (!this.isValidEmail(this.registerForm.email)) {
@@ -122,6 +126,22 @@ export default {
         this.alertMessage = '⚠️ Email formatting error constraint flagged.';
         return;
       }
+
+      const birthDate = new Date(this.registerForm.date_of_birth);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDifference = today.getMonth() - birthDate.getMonth();
+
+      if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+        age -= 1;
+      }
+
+      if (age < 18) {
+        this.isError = true;
+        this.alertMessage = '⚠️ You must be at least 18 years old to register.';
+        return;
+      }
+
       try {
         const response = await axios.post(`${API_BASE_URL}/api/auth/register`, this.registerForm);
         this.isError = false;
