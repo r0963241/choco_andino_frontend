@@ -9,7 +9,7 @@
             Sanctuary Control Panel
           </h1>
           <p class="text-sm text-gray-500 mt-1 font-sans">
-            Welcome back, <span class="font-bold text-brand-medium">{{ currentUser.name }}</span>. Account profile access tier: 
+            Welcome back, <span class="font-bold text-brand-medium">{{ currentUser.name }}</span>. Account profile <span class="font-semibold text-brand-dark">visitor</span>
             <span class="px-2 py-0.5 bg-brand-medium text-white text-xs font-bold rounded-full uppercase tracking-wider">{{ currentUser.role }}</span>
             <span
               v-if="currentUser.role === 'owner' && pendingOwnerBookingCount > 0"
@@ -35,7 +35,13 @@
             />
             <div>
               <p class="text-[10px] uppercase font-bold tracking-wider text-brand-medium">Profile settings</p>
-              <h2 class="text-xl font-black text-brand-dark mt-1">Account details</h2>
+              <button
+                type="button"
+                @click="toggleUserDetails"
+                class="text-left text-xl font-black text-brand-dark mt-1 hover:text-brand-medium transition"
+              >
+                Account details
+              </button>
             </div>
           </div>
 
@@ -64,6 +70,12 @@
             Save changes
           </button>
         </div>
+      </div>
+
+      <div v-if="showUserDetails" class="mt-5 space-y-2 text-sm text-brand-dark">
+        <p><span class="font-bold text-brand-medium uppercase tracking-wider text-[10px] mr-2">Email:</span> {{ currentUser.email || 'Not available' }}</p>
+        <p><span class="font-bold text-brand-medium uppercase tracking-wider text-[10px] mr-2">Date of birth:</span> {{ formatDisplayDate(currentUser.date_of_birth) || 'Not provided' }}</p>
+        <p><span class="font-bold text-brand-medium uppercase tracking-wider text-[10px] mr-2">Role:</span> {{ currentUser.role || 'visitor' }}</p>
       </div>
     </section>
 
@@ -222,6 +234,7 @@ export default {
       profileFeedbackType: 'success',
       profilePhotoUploading: false,
       showSettingsModal: false,
+      showUserDetails: false,
       showDeleteConfirmation: false,
       deletePassword: ''
     };
@@ -265,6 +278,21 @@ export default {
     this.stopOwnerBookingPolling();
   },
   methods: {
+    formatDisplayDate(value) {
+      if (!value) {
+        return '';
+      }
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return '';
+      }
+
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    },
     formatDateForInput(value) {
       if (!value) {
         return '';
@@ -288,6 +316,9 @@ export default {
         password: '',
         profile_photo: this.currentUser.profile_photo || ''
       };
+    },
+    toggleUserDetails() {
+      this.showUserDetails = !this.showUserDetails;
     },
     onProfileImageError(event) {
       event.target.src = this.defaultProfilePhoto;
