@@ -177,7 +177,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-2 gap-4">
         <div class="bg-white p-4 rounded-xl border border-green-100 shadow-sm text-center">
           <span class="block text-2xl font-black text-brand-dark">{{ approvedCount }}</span>
           <span class="text-[10px] uppercase font-bold text-brand-medium tracking-wider">Approved Listings</span>
@@ -185,10 +185,6 @@
         <div class="bg-white p-4 rounded-xl border border-green-100 shadow-sm text-center">
           <span class="block text-2xl font-black text-brand-dark">{{ pendingCount }}</span>
           <span class="text-[10px] uppercase font-bold text-brand-medium tracking-wider">Pending Review</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-green-100 shadow-sm text-center">
-          <span class="block text-2xl font-black" :class="hasApprovedListings ? 'text-green-700' : 'text-amber-600'">{{ hasApprovedListings ? 'Unlocked' : 'Locked' }}</span>
-          <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Owner Tools</span>
         </div>
       </div>
 

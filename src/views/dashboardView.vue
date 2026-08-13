@@ -28,7 +28,7 @@
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div class="flex items-center gap-4">
             <img
-              :src="currentUser.profile_photo || defaultProfilePhoto"
+              :src="toAbsoluteImageUrl(currentUser.profile_photo) || defaultProfilePhoto"
               alt="Profile photo"
               class="w-16 h-16 rounded-full object-cover border-2 border-green-200 shadow-sm"
               @error="onProfileImageError"
@@ -38,7 +38,7 @@
               <button
                 type="button"
                 @click="toggleUserDetails"
-                class="text-left text-xl font-black text-brand-dark mt-1 hover:text-brand-medium transition"
+                class="text-left text-xl font-black text-brand-dark mt-1 hover:text-brand-medium transition underline decoration-1 decoration-brand-medium/60 underline-offset-6"
               >
                 Account details
               </button>
@@ -223,7 +223,7 @@ export default {
       adminQueuePoller: null,
       ownerBookingPoller: null,
       adminStatusFilter: 'pending',
-      defaultProfilePhoto: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80',
+      defaultProfilePhoto: '',
       profileForm: {
         name: '',
         date_of_birth: '',
@@ -320,6 +320,21 @@ export default {
     toggleUserDetails() {
       this.showUserDetails = !this.showUserDetails;
     },
+    toAbsoluteImageUrl(imageUrl) {
+      if (!imageUrl) {
+        return '';
+      }
+
+      if (/^https?:\/\//i.test(imageUrl)) {
+        return imageUrl;
+      }
+
+      if (imageUrl.startsWith('/uploads/')) {
+        return `http://localhost:3000${imageUrl}`;
+      }
+
+      return imageUrl;
+    },
     onProfileImageError(event) {
       event.target.src = this.defaultProfilePhoto;
     },
@@ -341,8 +356,9 @@ export default {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
 
-        this.profileForm.profile_photo = response.data.imageUrl;
-        this.currentUser.profile_photo = response.data.imageUrl;
+        const uploadedImageUrl = this.toAbsoluteImageUrl(response.data.imageUrl);
+        this.profileForm.profile_photo = uploadedImageUrl;
+        this.currentUser.profile_photo = uploadedImageUrl;
         this.profileFeedback = 'Profile photo uploaded successfully.';
         this.profileFeedbackType = 'success';
         localStorage.setItem('userData', JSON.stringify(this.currentUser));
