@@ -17,10 +17,7 @@
       </video>
 
       <!-- Text Content Overlay Panel -->
-      <div class="relative z-10 max-w-3xl fade-in-tab">
-        <span class="text-xs uppercase tracking-widest font-bold text-white bg-brand-medium px-4 py-1.5 rounded-full inline-block mb-4 shadow">
-          Metropolitan District of Quito Ecosystem
-        </span>
+      <div class="relative z-10 max-w-3xl fade-in-tab pt-8 md:pt-12">
         <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white font-sans tracking-tight mt-0 drop-shadow-md">
           A Rainforest Hotel In The Clouds
         </h1>
@@ -112,13 +109,15 @@
 import axios from 'axios';
 
 const videoUrl = new URL('../videos/mindo-realistic-video-home.mp4', import.meta.url).href;
+const homeLogoUrl = new URL('../images/logo_3.jpg', import.meta.url).href;
 
 export default {
   data() {
     return {
       accommodations: [],
       loading: true,
-      videoUrl
+      videoUrl,
+      homeLogoUrl
     };
   },
   async created() {

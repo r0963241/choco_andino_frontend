@@ -103,6 +103,20 @@
             </button>
           </div>
 
+          <div v-if="showDeleteConfirmation" class="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+            <p class="text-xs font-bold uppercase tracking-wider text-red-700 mb-2">Confirm account deactivation</p>
+            <p class="text-sm text-red-700 mb-3">This will deactivate your account and block future sign-ins.</p>
+            <input v-model="deletePassword" type="password" class="choco-input text-sm mb-3" placeholder="Enter your password to continue" />
+            <div class="flex items-center gap-3">
+              <button type="button" @click="cancelDeleteAccount" class="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 text-[10px] font-bold uppercase tracking-wider rounded-lg transition">
+                Keep account
+              </button>
+              <button type="button" @click="finalizeDeleteAccount" class="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white border border-red-700 text-[10px] font-bold uppercase tracking-wider rounded-lg transition">
+                Delete now
+              </button>
+            </div>
+          </div>
+
           <div v-if="profileFeedback" class="mt-4 text-xs font-semibold p-2.5 rounded-lg border" :class="profileFeedbackType === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'">
             {{ profileFeedback }}
           </div>
@@ -207,7 +221,9 @@ export default {
       profileFeedback: '',
       profileFeedbackType: 'success',
       profilePhotoUploading: false,
-      showSettingsModal: false
+      showSettingsModal: false,
+      showDeleteConfirmation: false,
+      deletePassword: ''
     };
   },
   computed: {
@@ -343,6 +359,12 @@ export default {
         this.profileFeedback = response.data.message || 'Profile updated successfully.';
         this.profileFeedbackType = 'success';
         this.showSettingsModal = false;
+
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('userData');
+        setTimeout(() => {
+          this.$router.push('/login');
+        }, 1000);
       } catch (err) {
         console.error('Error updating profile:', err);
         this.profileFeedback = err.response?.data?.message || 'Failed to update profile.';
@@ -356,42 +378,48 @@ export default {
     },
     closeProfileSettings() {
       this.showSettingsModal = false;
+      this.showDeleteConfirmation = false;
+      this.deletePassword = '';
       this.profileFeedback = '';
     },
     confirmDeleteAccount() {
-      const firstConfirm = window.confirm('This will deactivate your account and block all future sign-ins. Continue?');
-      if (!firstConfirm) {
-        return;
-      }
-
-      const passwordValue = window.prompt('Please enter your password to confirm account deletion:');
-      if (passwordValue === null) {
-        return;
-      }
-
-      if (!passwordValue.trim()) {
+      this.deletePassword = '';
+      this.profileFeedback = '';
+      this.showDeleteConfirmation = true;
+    },
+    cancelDeleteAccount() {
+      this.showDeleteConfirmation = false;
+      this.deletePassword = '';
+      this.profileFeedback = 'Account deletion cancelled. Your account remains active.';
+      this.profileFeedbackType = 'success';
+    },
+    async finalizeDeleteAccount() {
+      if (!this.deletePassword || !this.deletePassword.trim()) {
         this.profileFeedback = 'Password confirmation is required to delete your account.';
         this.profileFeedbackType = 'error';
         return;
       }
 
-      const finalConfirm = window.confirm('Final confirmation: delete this account permanently from active use? You can contact admin to re-open it later.');
-      if (!finalConfirm) {
-        return;
-      }
-
-      this.deleteAccount(passwordValue.trim());
+      this.showDeleteConfirmation = false;
+      await this.deleteAccount(this.deletePassword.trim());
     },
     async deleteAccount(passwordValue) {
-      if (!this.currentUser.id) {
+      const storedUser = JSON.parse(localStorage.getItem('userData') || '{}');
+      const userId = Number(this.currentUser?.id ?? storedUser?.id);
+
+      if (!Number.isInteger(userId) || userId <= 0) {
         this.profileFeedback = 'Session is missing user information.';
         this.profileFeedbackType = 'error';
         return;
       }
 
+      this.currentUser = { ...this.currentUser, ...storedUser, id: userId };
+
       try {
-        await axios.delete(`http://localhost:3000/api/auth/user/${this.currentUser.id}`, {
-          data: { password: passwordValue }
+        const token = localStorage.getItem('userToken');
+        await axios.delete(`http://localhost:3000/api/auth/user/${userId}`, {
+          data: { password: passwordValue },
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
 
         localStorage.removeItem('userToken');
