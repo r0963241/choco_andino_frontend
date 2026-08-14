@@ -254,7 +254,11 @@ export default {
       return;
     }
 
-    this.currentUser = JSON.parse(storedUser);
+    const parsedUser = JSON.parse(storedUser);
+    this.currentUser = {
+      ...parsedUser,
+      role: String(parsedUser?.role || 'visitor').trim().toLowerCase()
+    };
 
     this.syncProfileForm();
 

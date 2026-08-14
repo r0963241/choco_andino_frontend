@@ -341,8 +341,19 @@ export default {
     },
     async loadAdminUsers() {
       const token = this.getAdminToken();
-      if (!token) {
+      const role = String(this.currentUser?.role || '').toLowerCase();
+
+      console.log('Admin user debug', {
+        role,
+        hasToken: !!token,
+        userData: this.currentUser
+      });
+
+      if (!token || role !== 'admin') {
         this.adminUsers = [];
+        this.adminAlert = role !== 'admin'
+          ? 'Admin access required to load user list.'
+          : 'Authentication token missing. Please sign in again.';
         return;
       }
 
@@ -359,7 +370,7 @@ export default {
       } catch (error) {
         console.error('Error loading admin users:', error);
         this.adminUsers = [];
-        this.$emit('moderate', { id: null, status: 'error' });
+        this.adminAlert = error.response?.data?.message || 'Failed to load user list.';
       } finally {
         this.adminUsersLoading = false;
       }

@@ -104,10 +104,15 @@ export default {
       }
       try {
         const response = await axios.post(`${API_BASE_URL}/api/auth/login`, this.loginForm);
+        const safeUser = {
+          ...response.data.user,
+          role: String(response.data.user?.role || 'visitor').trim().toLowerCase()
+        };
+
         this.isError = false;
         this.alertMessage = `✅ ${response.data.message}`;
         localStorage.setItem('userToken', response.data.token);
-        localStorage.setItem('userData', JSON.stringify(response.data.user));
+        localStorage.setItem('userData', JSON.stringify(safeUser));
         setTimeout(() => this.$router.push('/dashboard'), 1500);
       } catch (err) {
         this.isError = true;
