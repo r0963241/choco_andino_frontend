@@ -9,8 +9,8 @@
             Sanctuary Control Panel
           </h1>
           <p class="text-sm text-gray-500 mt-1 font-sans">
-            Welcome back, <span class="font-bold text-brand-medium">{{ currentUser.name }}</span>. Account profile <span class="font-semibold text-brand-dark">visitor</span>
-            <span class="px-2 py-0.5 bg-brand-medium text-white text-xs font-bold rounded-full uppercase tracking-wider">{{ currentUser.role }}</span>
+            Welcome back, <span class="font-bold text-brand-medium">{{ currentUser.name }}</span>. Account profile <span class="font-semibold text-brand-dark">{{ currentUser.role || 'visitor' }}</span>
+       
             <span
               v-if="currentUser.role === 'owner' && pendingOwnerBookingCount > 0"
               class="ml-2 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full uppercase tracking-wider border border-amber-200"

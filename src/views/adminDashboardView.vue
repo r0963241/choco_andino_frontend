@@ -82,6 +82,139 @@
       <div class="mt-8 border-t border-green-100 pt-6">
         <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
           <div>
+            <h4 class="text-base font-bold text-brand-dark">User Account Management</h4>
+            <p class="text-xs text-gray-500 mt-1">Admin-only controls for roles, status, and privacy cleanup.</p>
+          </div>
+          <button
+            type="button"
+            @click="loadAdminUsers"
+            class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-green-200 bg-brand-bg text-brand-medium hover:bg-green-100 transition"
+          >
+            Refresh Users
+          </button>
+        </div>
+
+        <div v-if="showDeleteConfirm" class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4">
+          <p class="text-sm font-bold text-red-700">Delete this account?</p>
+          <p class="mt-1 text-xs text-red-700">
+            This anonymizes the user and preserves confirmed/completed bookings. This action cannot be undone.
+          </p>
+          <div class="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              @click="confirmUserDelete"
+              class="px-3 py-2 rounded-lg bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-red-700 transition"
+            >
+              Confirm delete
+            </button>
+            <button
+              type="button"
+              @click="cancelUserDelete"
+              class="px-3 py-2 rounded-lg border border-red-200 bg-white text-red-700 text-[10px] font-bold uppercase tracking-wider hover:bg-red-100 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div class="flex flex-col md:flex-row md:items-center gap-3 w-full md:max-w-xl">
+            <input
+              v-model="userSearch"
+              type="text"
+              placeholder="Search users by name or email"
+              class="w-full md:max-w-md rounded-lg border border-green-200 bg-white px-3 py-2 text-sm text-brand-dark placeholder:text-gray-400 focus:outline-none focus:border-brand-medium"
+            />
+            <select
+              v-model="userRoleFilter"
+              class="rounded-lg border border-green-200 bg-white px-3 py-2 text-sm text-brand-dark focus:outline-none focus:border-brand-medium"
+            >
+              <option value="all">All roles</option>
+              <option value="visitor">Visitor</option>
+              <option value="owner">Owner</option>
+              <option value="admin">Admin</option>
+            </select>
+            <select
+              v-model="userStatusFilter"
+              class="rounded-lg border border-green-200 bg-white px-3 py-2 text-sm text-brand-dark focus:outline-none focus:border-brand-medium"
+            >
+              <option value="all">All status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-brand-medium">
+            {{ filteredAdminUsers.length }} match{{ filteredAdminUsers.length === 1 ? '' : 'es' }}
+          </span>
+        </div>
+
+        <div v-if="adminUsersLoading" class="text-sm text-gray-500">Loading users...</div>
+        <div v-else-if="filteredAdminUsers.length === 0" class="text-sm text-gray-500">No users found.</div>
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-gray-100 text-[11px] uppercase font-bold text-brand-medium tracking-wider">
+                <th class="pb-3">Name</th>
+                <th class="pb-3">Email</th>
+                <th class="pb-3">Role</th>
+                <th class="pb-3">Status</th>
+                <th class="pb-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
+              <tr v-for="user in filteredAdminUsers" :key="user.id">
+                <td class="py-3.5 font-semibold text-brand-dark">{{ user.name || 'Unknown user' }}</td>
+                <td class="py-3.5 text-gray-600">{{ user.email || 'No email' }}</td>
+                <td class="py-3.5">
+                  <select
+                    :value="user.role"
+                    @change="changeUserRole(user.id, $event.target.value)"
+                    class="rounded-lg border border-green-200 bg-white px-2 py-1.5 text-xs font-semibold text-brand-dark focus:outline-none focus:border-brand-medium"
+                  >
+                    <option value="visitor">visitor</option>
+                    <option value="owner">owner</option>
+                    <option value="admin">admin</option>
+                  </select>
+                </td>
+                <td class="py-3.5">
+                  <span
+                    :class="[
+                      'inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider',
+                      Number(user.is_active) === 1
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                    ]"
+                  >
+                    {{ Number(user.is_active) === 1 ? 'active' : 'inactive' }}
+                  </span>
+                </td>
+                <td class="py-3.5">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      @click="toggleUserStatus(user)"
+                      class="px-2.5 py-1.5 rounded-lg border border-green-200 bg-brand-bg text-[10px] font-bold uppercase tracking-wider text-brand-medium hover:bg-green-100 transition"
+                    >
+                      {{ Number(user.is_active) === 1 ? 'Disable' : 'Enable' }}
+                    </button>
+                    <button
+                      type="button"
+                      @click="requestUserDelete(user.id)"
+                      class="px-2.5 py-1.5 rounded-lg border border-red-200 bg-red-50 text-[10px] font-bold uppercase tracking-wider text-red-700 hover:bg-red-100 transition"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="mt-8 border-t border-green-100 pt-6">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+          <div>
             <h4 class="text-base font-bold text-brand-dark">Monthly Revenue by Property</h4>
             <p class="text-xs text-gray-500 mt-1">Global reporting view across all owners.</p>
           </div>
@@ -123,6 +256,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   props: {
     currentUser: {
@@ -162,10 +297,162 @@ export default {
         { label: 'Approved', value: 'approved' },
         { label: 'Rejected', value: 'rejected' },
         { label: 'All', value: 'all' }
-      ]
+      ],
+      adminUsers: [],
+      adminUsersLoading: false,
+      showDeleteConfirm: false,
+      pendingDeleteUserId: null,
+      userSearch: '',
+      userRoleFilter: 'all',
+      userStatusFilter: 'all'
     };
   },
+  computed: {
+    filteredAdminUsers() {
+      const searchTerm = this.userSearch.trim().toLowerCase();
+
+      return this.adminUsers.filter((user) => {
+        const matchesRole = this.userRoleFilter === 'all' || String(user.role || '').toLowerCase() === this.userRoleFilter;
+        const isActive = Number(user.is_active) === 1;
+        const matchesStatus = this.userStatusFilter === 'all'
+          || (this.userStatusFilter === 'active' && isActive)
+          || (this.userStatusFilter === 'inactive' && !isActive);
+
+        if (!matchesRole || !matchesStatus) {
+          return false;
+        }
+
+        if (!searchTerm) {
+          return true;
+        }
+
+        const name = String(user.name || '').toLowerCase();
+        const email = String(user.email || '').toLowerCase();
+        return name.includes(searchTerm) || email.includes(searchTerm);
+      });
+    }
+  },
+  mounted() {
+    this.loadAdminUsers();
+  },
   methods: {
+    getAdminToken() {
+      return localStorage.getItem('userToken');
+    },
+    async loadAdminUsers() {
+      const token = this.getAdminToken();
+      if (!token) {
+        this.adminUsers = [];
+        return;
+      }
+
+      this.adminUsersLoading = true;
+
+      try {
+        const response = await axios.get('http://localhost:3000/api/admin/users', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        this.adminUsers = response.data || [];
+      } catch (error) {
+        console.error('Error loading admin users:', error);
+        this.adminUsers = [];
+        this.$emit('moderate', { id: null, status: 'error' });
+      } finally {
+        this.adminUsersLoading = false;
+      }
+    },
+    async changeUserRole(userId, nextRole) {
+      if (!nextRole) {
+        return;
+      }
+
+      const token = this.getAdminToken();
+      if (!token) {
+        return;
+      }
+
+      try {
+        await axios.patch(
+          `http://localhost:3000/api/admin/users/${userId}/role`,
+          { role: nextRole },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        this.adminAlert = `User role updated to ${nextRole}.`;
+        await this.loadAdminUsers();
+      } catch (error) {
+        console.error('Error updating user role:', error);
+        this.adminAlert = error.response?.data?.message || 'Failed to update user role.';
+      }
+    },
+    async toggleUserStatus(user) {
+      const token = this.getAdminToken();
+      if (!token) {
+        return;
+      }
+
+      const nextStatus = Number(user.is_active) === 1 ? 0 : 1;
+
+      try {
+        await axios.patch(
+          `http://localhost:3000/api/admin/users/${user.id}/status`,
+          { is_active: nextStatus },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        this.adminAlert = `User account ${nextStatus === 1 ? 'enabled' : 'disabled'} successfully.`;
+        await this.loadAdminUsers();
+      } catch (error) {
+        console.error('Error updating user status:', error);
+        this.adminAlert = error.response?.data?.message || 'Failed to update user status.';
+      }
+    },
+    requestUserDelete(userId) {
+      this.pendingDeleteUserId = userId;
+      this.showDeleteConfirm = true;
+    },
+    cancelUserDelete() {
+      this.pendingDeleteUserId = null;
+      this.showDeleteConfirm = false;
+    },
+    async confirmUserDelete() {
+      const userId = this.pendingDeleteUserId;
+      const token = this.getAdminToken();
+      if (!token || !userId) {
+        this.cancelUserDelete();
+        return;
+      }
+
+      try {
+        const response = await axios.delete(
+          `http://localhost:3000/api/admin/users/${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        this.adminAlert = response.data.message || 'User account removed.';
+        await this.loadAdminUsers();
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        this.adminAlert = error.response?.data?.message || 'Failed to remove user account.';
+      } finally {
+        this.cancelUserDelete();
+      }
+    },
     formatDateTime(value) {
       if (!value) {
         return 'Unknown';
