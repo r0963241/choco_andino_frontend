@@ -260,6 +260,24 @@ export default {
       role: String(parsedUser?.role || 'visitor').trim().toLowerCase()
     };
 
+    try {
+      const response = await axios.get(`http://localhost:3000/api/auth/user/${this.currentUser.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.data) {
+        this.currentUser = {
+          ...this.currentUser,
+          ...response.data,
+          role: String(response.data.role || this.currentUser.role || 'visitor').trim().toLowerCase()
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to refresh current user from server; using local session data.', error);
+    }
+
     this.syncProfileForm();
 
     if (this.currentUser.role === 'owner') {

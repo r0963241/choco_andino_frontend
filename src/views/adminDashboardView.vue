@@ -150,65 +150,151 @@
 
         <div v-if="adminUsersLoading" class="text-sm text-gray-500">Loading users...</div>
         <div v-else-if="filteredAdminUsers.length === 0" class="text-sm text-gray-500">No users found.</div>
-        <div v-else class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-gray-100 text-[11px] uppercase font-bold text-brand-medium tracking-wider">
-                <th class="pb-3">Name</th>
-                <th class="pb-3">Email</th>
-                <th class="pb-3">Role</th>
-                <th class="pb-3">Status</th>
-                <th class="pb-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
-              <tr v-for="user in filteredAdminUsers" :key="user.id">
-                <td class="py-3.5 font-semibold text-brand-dark">{{ user.name || 'Unknown user' }}</td>
-                <td class="py-3.5 text-gray-600">{{ user.email || 'No email' }}</td>
-                <td class="py-3.5">
-                  <select
-                    :value="user.role"
-                    @change="changeUserRole(user.id, $event.target.value)"
-                    class="rounded-lg border border-green-200 bg-white px-2 py-1.5 text-xs font-semibold text-brand-dark focus:outline-none focus:border-brand-medium"
-                  >
-                    <option value="visitor">visitor</option>
-                    <option value="owner">owner</option>
-                    <option value="admin">admin</option>
-                  </select>
-                </td>
-                <td class="py-3.5">
-                  <span
-                    :class="[
-                      'inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider',
-                      Number(user.is_active) === 1
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
-                    ]"
-                  >
-                    {{ Number(user.is_active) === 1 ? 'active' : 'inactive' }}
-                  </span>
-                </td>
-                <td class="py-3.5">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      @click="toggleUserStatus(user)"
-                      class="px-2.5 py-1.5 rounded-lg border border-green-200 bg-brand-bg text-[10px] font-bold uppercase tracking-wider text-brand-medium hover:bg-green-100 transition"
-                    >
-                      {{ Number(user.is_active) === 1 ? 'Disable' : 'Enable' }}
-                    </button>
-                    <button
-                      type="button"
-                      @click="requestUserDelete(user.id)"
-                      class="px-2.5 py-1.5 rounded-lg border border-red-200 bg-red-50 text-[10px] font-bold uppercase tracking-wider text-red-700 hover:bg-red-100 transition"
-                    >
-                      Delete
-                    </button>
+        <div v-else>
+          <div v-if="selectedUserDetail" class="mb-4 rounded-xl border border-green-200 bg-brand-bg p-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div class="flex items-center gap-4">
+                <div class="h-16 w-16 overflow-hidden rounded-full border border-green-200 bg-white shadow-sm">
+                  <img
+                    v-if="selectedUserDetail.profile_photo"
+                    :src="selectedUserDetail.profile_photo.startsWith('http') ? selectedUserDetail.profile_photo : `http://localhost:3000${selectedUserDetail.profile_photo}`"
+                    :alt="selectedUserDetail.name || 'User profile photo'"
+                    class="h-full w-full object-cover"
+                  />
+                  <div v-else class="flex h-full w-full items-center justify-center bg-green-100 text-sm font-bold text-brand-medium">
+                    {{ getInitials(selectedUserDetail.name) }}
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+
+                <div>
+                  <p class="text-[11px] font-bold uppercase tracking-wider text-brand-medium">User details</p>
+                  <h5 class="mt-1 text-lg font-bold text-brand-dark">{{ selectedUserDetail.name || 'Unknown user' }}</h5>
+                  <p class="text-sm text-gray-600">{{ selectedUserDetail.email || 'No email provided' }}</p>
+                </div>
+              </div>
+
+              <span
+                :class="[
+                  'inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider',
+                  Number(selectedUserDetail.is_active) === 1
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-700'
+                ]"
+              >
+                {{ Number(selectedUserDetail.is_active) === 1 ? 'active' : 'inactive' }}
+              </span>
+            </div>
+
+            <div class="mt-4 grid gap-3 md:grid-cols-4">
+              <div class="rounded-lg border border-green-100 bg-white p-3">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Role</p>
+                <p class="mt-1 text-sm font-semibold text-brand-dark">{{ selectedUserDetail.role || 'visitor' }}</p>
+              </div>
+              <div class="rounded-lg border border-green-100 bg-white p-3">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500">User ID</p>
+                <p class="mt-1 text-sm font-semibold text-brand-dark">{{ selectedUserDetail.id }}</p>
+              </div>
+              <div class="rounded-lg border border-green-100 bg-white p-3">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Date of birth</p>
+                <p class="mt-1 text-sm font-semibold text-brand-dark">{{ selectedUserDetail.date_of_birth ? formatDate(selectedUserDetail.date_of_birth) : 'Not provided' }}</p>
+              </div>
+              <div class="rounded-lg border border-green-100 bg-white p-3">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Photo</p>
+                <p class="mt-1 text-sm font-semibold text-brand-dark">{{ selectedUserDetail.profile_photo ? 'Available' : 'Not uploaded' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-gray-100 text-[11px] uppercase font-bold text-brand-medium tracking-wider">
+                  <th class="pb-3">Name</th>
+                  <th class="pb-3">Email</th>
+                  <th class="pb-3">Role</th>
+                  <th class="pb-3">Status</th>
+                  <th class="pb-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
+                <tr
+                  v-for="user in filteredAdminUsers"
+                  :key="user.id"
+                  @click="selectUser(user)"
+                  :class="[
+                    selectedUserDetail && Number(selectedUserDetail.id) === Number(user.id) ? 'bg-green-50' : '',
+                    'cursor-pointer hover:bg-green-50 transition'
+                  ]"
+                >
+                  <td class="py-3.5 font-semibold text-brand-dark">
+                    <div class="flex items-center gap-2">
+                      <span>{{ user.name || 'Unknown user' }}</span>
+                      <span
+                        v-if="isProtectedPrimaryAdmin(user)"
+                        class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-700"
+                      >
+                        Protected
+                      </span>
+                    </div>
+                  </td>
+                  <td class="py-3.5 text-gray-600">{{ user.email || 'No email' }}</td>
+                  <td class="py-3.5">
+                    <select
+                      :value="user.role"
+                      @change="changeUserRole(user.id, $event.target.value)"
+                      class="rounded-lg border border-green-200 bg-white px-2 py-1.5 text-xs font-semibold text-brand-dark focus:outline-none focus:border-brand-medium"
+                    >
+                      <option value="visitor">visitor</option>
+                      <option value="owner">owner</option>
+                      <option value="admin">admin</option>
+                    </select>
+                  </td>
+                  <td class="py-3.5">
+                    <span
+                      :class="[
+                        'inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider',
+                        Number(user.is_active) === 1
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
+                      ]"
+                    >
+                      {{ Number(user.is_active) === 1 ? 'active' : 'inactive' }}
+                    </span>
+                  </td>
+                  <td class="py-3.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        @click="toggleUserStatus(user)"
+                        :disabled="isProtectedPrimaryAdmin(user)"
+                        :class="[
+                          'px-2.5 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition',
+                          isProtectedPrimaryAdmin(user)
+                            ? 'border-amber-200 bg-amber-50 text-amber-600 cursor-not-allowed opacity-70'
+                            : 'border-green-200 bg-brand-bg text-brand-medium hover:bg-green-100'
+                        ]"
+                      >
+                        {{ Number(user.is_active) === 1 ? 'Disable' : 'Enable' }}
+                      </button>
+                      <button
+                        type="button"
+                        @click="requestUserDelete(user.id)"
+                        :disabled="isProtectedPrimaryAdmin(user)"
+                        :class="[
+                          'px-2.5 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition',
+                          isProtectedPrimaryAdmin(user)
+                            ? 'border-amber-200 bg-amber-50 text-amber-600 cursor-not-allowed opacity-70'
+                            : 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                        ]"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -304,15 +390,40 @@ export default {
       pendingDeleteUserId: null,
       userSearch: '',
       userRoleFilter: 'all',
-      userStatusFilter: 'all'
+      userStatusFilter: 'all',
+      selectedUserId: null
     };
   },
   computed: {
+    selectedUserDetail() {
+      if (this.selectedUserId === null || this.selectedUserId === undefined) {
+        return null;
+      }
+
+      const selectedId = Number(this.selectedUserId);
+      if (!Number.isFinite(selectedId)) {
+        return null;
+      }
+
+      return this.filteredAdminUsers.find((user) => Number(user.id) === selectedId) || null;
+    },
     filteredAdminUsers() {
-      const searchTerm = this.userSearch.trim().toLowerCase();
+      const normalizeText = (value) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+      const searchTerm = normalizeText(this.userSearch);
 
       return this.adminUsers.filter((user) => {
-        const matchesRole = this.userRoleFilter === 'all' || String(user.role || '').toLowerCase() === this.userRoleFilter;
+        const nameValue = String(user?.name || '');
+        const emailValue = String(user?.email || '');
+
+        if (nameValue.startsWith('Deleted User ') || emailValue.startsWith('deleted-')) {
+          return false;
+        }
+
+        const matchesRole = this.userRoleFilter === 'all' || normalizeText(user.role) === this.userRoleFilter;
         const isActive = Number(user.is_active) === 1;
         const matchesStatus = this.userStatusFilter === 'all'
           || (this.userStatusFilter === 'active' && isActive)
@@ -326,8 +437,8 @@ export default {
           return true;
         }
 
-        const name = String(user.name || '').toLowerCase();
-        const email = String(user.email || '').toLowerCase();
+        const name = normalizeText(user.name);
+        const email = normalizeText(user.email);
         return name.includes(searchTerm) || email.includes(searchTerm);
       });
     }
@@ -335,9 +446,79 @@ export default {
   mounted() {
     this.loadAdminUsers();
   },
+  watch: {
+    userSearch() {
+      this.selectedUserId = null;
+    },
+    userRoleFilter() {
+      this.selectedUserId = null;
+    },
+    userStatusFilter() {
+      this.selectedUserId = null;
+    },
+    filteredAdminUsers() {
+      if (!this.userSearch || !this.userSearch.trim()) {
+        this.selectedUserId = null;
+      }
+    },
+    adminUsers: {
+      handler() {
+        if (!this.selectedUserId) {
+          return;
+        }
+
+        const selectedStillExists = this.adminUsers.some((user) => Number(user.id) === Number(this.selectedUserId));
+        if (!selectedStillExists) {
+          this.selectedUserId = null;
+        }
+      },
+      deep: true
+    }
+  },
   methods: {
     getAdminToken() {
       return localStorage.getItem('userToken');
+    },
+    getInitials(name) {
+      const safeName = String(name || '').trim();
+      if (!safeName) {
+        return 'U';
+      }
+
+      return safeName
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join('');
+    },
+    selectUser(user) {
+      if (!user) {
+        return;
+      }
+
+      this.selectedUserId = Number(user.id);
+    },
+    clearUserSelection() {
+      this.selectedUserId = null;
+    },
+    formatDate(value) {
+      if (!value) {
+        return 'Not provided';
+      }
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return String(value);
+      }
+
+      return new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(date);
+    },
+    isProtectedPrimaryAdmin(user) {
+      return Number(user?.id) === 10 && String(user?.role || '').toLowerCase() === 'admin';
     },
     async loadAdminUsers() {
       const token = this.getAdminToken();
@@ -367,6 +548,7 @@ export default {
         });
 
         this.adminUsers = response.data || [];
+        this.clearUserSelection();
       } catch (error) {
         console.error('Error loading admin users:', error);
         this.adminUsers = [];
@@ -404,6 +586,11 @@ export default {
       }
     },
     async toggleUserStatus(user) {
+      if (this.isProtectedPrimaryAdmin(user)) {
+        this.adminAlert = 'The primary admin account cannot be disabled or enabled.';
+        return;
+      }
+
       const token = this.getAdminToken();
       if (!token) {
         return;
@@ -430,6 +617,13 @@ export default {
       }
     },
     requestUserDelete(userId) {
+      const user = this.adminUsers.find((entry) => Number(entry.id) === Number(userId));
+
+      if (this.isProtectedPrimaryAdmin(user)) {
+        this.adminAlert = 'The primary admin account cannot be deleted.';
+        return;
+      }
+
       this.pendingDeleteUserId = userId;
       this.showDeleteConfirm = true;
     },
