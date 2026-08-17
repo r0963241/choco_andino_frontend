@@ -40,10 +40,6 @@
           <p><span class="font-semibold">Price Per Night:</span> {{ parentPriceLabel }}</p>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Accommodation Name</label>
-          <input v-model="accommodationForm.title" type="text" placeholder="e.g., Forest Cabin 01" class="choco-input text-sm" required />
-        </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Accommodation Type</label>
@@ -86,21 +82,27 @@
           <input v-model.number="accommodationForm.price_per_night" type="number" min="1" placeholder="85" class="choco-input text-sm" required />
         </div>
         <div>
-          <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Accommodation Description</label>
-          <textarea v-model="accommodationForm.description" rows="3" placeholder="Describe this room or cabin..." class="choco-input text-sm resize-none" required></textarea>
-        </div>
-        <div>
           <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Upload Accommodation Image</label>
           <input ref="accommodationImageInput" type="file" accept="image/*" @change="handleImageUpload('accommodation', $event)" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-bg file:text-brand-medium hover:file:bg-green-100" />
           <p v-if="uploadingTarget === 'accommodation'" class="text-xs text-brand-medium mt-2">Uploading image...</p>
         </div>
-        <div v-if="accommodationForm.image_url" class="text-xs text-brand-medium">
-          Selected image: {{ accommodationForm.image_url }}
+        <div v-if="accommodationForm.accommodation_image_url" class="text-xs text-brand-medium">
+          Selected image: {{ accommodationForm.accommodation_image_url }}
         </div>
 
-        <button type="submit" class="choco-btn-primary text-xs uppercase tracking-wider py-2.5">
-          Save Accommodation
-        </button>
+        <div class="flex gap-3">
+          <button type="submit" class="choco-btn-primary text-xs uppercase tracking-wider py-2.5">
+            {{ editingAccommodationId ? 'Update Accommodation' : 'Save Accommodation' }}
+          </button>
+          <button
+            v-if="editingAccommodationId"
+            type="button"
+            class="px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 text-xs font-bold uppercase tracking-wide hover:bg-gray-100"
+            @click="cancelEditAccommodation"
+          >
+            Cancel Edit
+          </button>
+        </div>
       </form>
 
       <div v-else class="p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 text-slate-700 text-sm">
@@ -124,15 +126,34 @@
               <th class="pb-3">Type</th>
               <th class="pb-3">Occupancy</th>
               <th class="pb-3">Price</th>
+              <th class="pb-3">Actions</th>
             </tr>
           </thead>
           <tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
             <tr v-for="item in ownerAccommodations" :key="item.id">
-              <td class="py-3.5 font-bold text-brand-dark">{{ item.title }}</td>
-              <td class="py-3.5 text-gray-600">{{ item.property_name || 'Unknown property' }}</td>
+              <td class="py-3.5 font-bold text-brand-dark">{{ capitalize(item.accommodation_type) }} - {{ capitalize(item.bed_type) }}</td>
+              <td class="py-3.5 text-gray-600">{{ item.title || 'Unknown property' }}</td>
               <td class="py-3.5 text-gray-500 capitalize">{{ item.accommodation_type }} / {{ item.bed_type }}</td>
               <td class="py-3.5 text-gray-600">{{ item.max_adults }} adults, {{ item.max_kids }} kids, {{ item.max_babies }} babies</td>
               <td class="py-3.5 text-brand-medium font-bold">€{{ item.price_per_night }}</td>
+              <td class="py-3.5">
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    class="px-2.5 py-1 rounded-md border border-green-200 bg-green-50 text-green-700 text-[10px] font-bold uppercase tracking-wide hover:bg-green-100"
+                    @click="startEditAccommodation(item)"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-red-700 text-[10px] font-bold uppercase tracking-wide hover:bg-red-100"
+                    @click="confirmDeleteAccommodation(item)"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -173,16 +194,17 @@ export default {
       default: ''
     }
   },
-  emits: ['submit-accommodation', 'image-upload'],
+  emits: ['submit-accommodation', 'update-accommodation', 'delete-accommodation', 'image-upload'],
   data() {
     return {
       showAccommodationForm: false,
-      accommodationForm: this.getInitialAccommodationForm()
+      accommodationForm: this.getInitialAccommodationForm(),
+      editingAccommodationId: null
     };
   },
   watch: {
     accommodationUploadedImageUrl(newValue) {
-      this.accommodationForm.image_url = newValue || '';
+      this.accommodationForm.accommodation_image_url = newValue || '';
     },
     accommodationFormResetKey() {
       this.resetAccommodationForm();
@@ -270,18 +292,17 @@ export default {
     getInitialAccommodationForm() {
       return {
         property_id: '',
-        title: '',
         accommodation_type: 'room',
         bed_type: 'single',
         max_adults: 1,
         max_kids: 0,
         max_babies: 0,
         price_per_night: '',
-        description: '',
-        image_url: ''
+        accommodation_image_url: ''
       };
     },
     resetAccommodationForm() {
+      this.editingAccommodationId = null;
       this.accommodationForm = {
         ...this.getInitialAccommodationForm(),
         property_id: this.approvedProperties[0] ? String(this.approvedProperties[0].id) : ''
@@ -307,6 +328,15 @@ export default {
         return;
       }
 
+      if (this.editingAccommodationId) {
+        this.$emit('update-accommodation', {
+          ...this.accommodationForm,
+          id: this.editingAccommodationId,
+          property_id: Number(this.accommodationForm.property_id)
+        });
+        return;
+      }
+
       this.$emit('submit-accommodation', {
         ...this.accommodationForm,
         property_id: Number(this.accommodationForm.property_id),
@@ -314,8 +344,38 @@ export default {
         status: 'approved'
       });
     },
+    startEditAccommodation(item) {
+      this.editingAccommodationId = item.id;
+      this.accommodationForm = {
+        property_id: String(item.property_id),
+        accommodation_type: item.accommodation_type,
+        bed_type: item.bed_type,
+        max_adults: item.max_adults,
+        max_kids: item.max_kids,
+        max_babies: item.max_babies,
+        price_per_night: item.price_per_night,
+        accommodation_image_url: item.accommodation_image_url || ''
+      };
+      this.showAccommodationForm = true;
+    },
+    cancelEditAccommodation() {
+      this.editingAccommodationId = null;
+      this.resetAccommodationForm();
+    },
+    confirmDeleteAccommodation(item) {
+      const label = `${this.capitalize(item.accommodation_type)} - ${this.capitalize(item.bed_type)}`;
+      if (window.confirm(`Delete ${label}? This is only possible if it has no pending, confirmed, or completed bookings.`)) {
+        this.$emit('delete-accommodation', item.id);
+      }
+    },
     handleImageUpload(target, event) {
       this.$emit('image-upload', { target, event });
+    },
+    capitalize(value) {
+      if (!value) {
+        return '';
+      }
+      return value.charAt(0).toUpperCase() + value.slice(1);
     }
   }
 };

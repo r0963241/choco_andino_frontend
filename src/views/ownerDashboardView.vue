@@ -62,14 +62,92 @@
             Selected image: {{ propertyForm.image_url }}
           </div>
 
-          <button type="submit" class="choco-btn-primary text-xs uppercase tracking-wider py-2.5">
-            Submit for Approval
-          </button>
+          <div class="flex items-center gap-3">
+            <button type="submit" class="choco-btn-primary text-xs uppercase tracking-wider py-2.5 flex-1">
+              {{ isEditingProperty ? 'Save Property Changes' : 'Submit for Approval' }}
+            </button>
+            <button
+              v-if="isEditingProperty"
+              type="button"
+              @click="cancelPropertyEdit"
+              class="px-3 py-2 rounded-lg border border-gray-200 bg-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-700 hover:bg-gray-200 transition"
+            >
+              Cancel
+            </button>
+          </div>
         </form>
 
         <p v-if="propertyAlert" class="mt-4 text-xs font-semibold p-2.5 bg-brand-bg text-brand-medium border border-green-100 rounded-lg text-center">
           {{ propertyAlert }}
         </p>
+      </div>
+
+      <div v-if="isEditingProperty" class="bg-white p-6 rounded-xl border border-green-100 shadow-sm">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-brand-dark mt-0 mb-1">Edit Property</h3>
+            <p class="text-xs text-gray-500">Update all property details for the selected listing.</p>
+          </div>
+          <button
+            type="button"
+            @click="cancelPropertyEdit"
+            class="px-3 py-2 rounded-lg border border-gray-200 bg-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-700 hover:bg-gray-200 transition"
+          >
+            Close editor
+          </button>
+        </div>
+
+        <form @submit.prevent="submitPropertyForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Property Name</label>
+            <input v-model="propertyForm.title" type="text" class="choco-input text-sm" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Address</label>
+            <input v-model="propertyForm.address" type="text" class="choco-input text-sm" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Property Type</label>
+            <select v-model="propertyForm.property_type" class="choco-input text-sm" required>
+              <option value="rooms">Rooms</option>
+              <option value="cabins">Cabins</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Number of Rooms / Cabins</label>
+            <input v-model="propertyForm.unit_count" type="number" min="1" class="choco-input text-sm" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Location Zone</label>
+            <input v-model="propertyForm.location" type="text" class="choco-input text-sm" required />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Sanctuary Description</label>
+            <textarea v-model="propertyForm.description" rows="4" class="choco-input text-sm resize-none" required></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-sm text-gray-600">
+            <label class="flex items-center gap-2"><input type="checkbox" v-model="propertyForm.has_ac" /> AC / Radiator</label>
+            <label class="flex items-center gap-2"><input type="checkbox" v-model="propertyForm.has_parking" /> Parking</label>
+            <label class="flex items-center gap-2"><input type="checkbox" v-model="propertyForm.has_room_service" /> Room Service</label>
+            <label class="flex items-center gap-2"><input type="checkbox" v-model="propertyForm.has_private_wc" /> Private WC</label>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-brand-dark uppercase tracking-wide mb-1">Image URL</label>
+            <input v-model="propertyForm.image_url" type="text" placeholder="https://... or /uploads/..." class="choco-input text-sm" />
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="submit" class="choco-btn-primary text-xs uppercase tracking-wider py-2.5 flex-1">
+              Save Property Changes
+            </button>
+            <button
+              type="button"
+              @click="cancelPropertyEdit"
+              class="px-3 py-2 rounded-lg border border-gray-200 bg-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-700 hover:bg-gray-200 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -219,12 +297,21 @@
                 <td class="py-3.5 text-gray-600">{{ item.unit_count || 0 }}</td>
                 <td class="py-3.5 text-gray-500">{{ formatDate(item.created_at) }}</td>
                 <td class="py-3.5 text-right">
-                  <span
-                    class="px-2 py-0.5 border text-[10px] font-bold uppercase rounded"
-                    :class="statusBadgeClass(item.status)"
-                  >
-                    {{ item.status || 'pending' }}
-                  </span>
+                  <div class="flex items-center justify-end gap-2">
+                    <span
+                      class="px-2 py-0.5 border text-[10px] font-bold uppercase rounded"
+                      :class="statusBadgeClass(item.status)"
+                    >
+                      {{ item.status || 'pending' }}
+                    </span>
+                    <button
+                      type="button"
+                      @click="editProperty(item)"
+                      class="px-2.5 py-1.5 rounded border border-green-200 bg-brand-bg text-[10px] font-bold uppercase tracking-wider text-brand-medium hover:bg-green-100 transition"
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -275,10 +362,11 @@ export default {
       default: ''
     }
   },
-  emits: ['submit-property', 'image-upload', 'logout', 'booking-moderation'],
+  emits: ['submit-property', 'update-property', 'image-upload', 'logout', 'booking-moderation'],
   data() {
     return {
-      propertyForm: this.getInitialPropertyForm()
+      propertyForm: this.getInitialPropertyForm(),
+      editingPropertyId: null
     };
   },
   watch: {
@@ -301,6 +389,9 @@ export default {
     },
     pendingBookingCount() {
       return this.ownerBookingRequests.filter((item) => item.status === 'pending').length;
+    },
+    isEditingProperty() {
+      return Number.isInteger(this.editingPropertyId) && this.editingPropertyId !== null;
     }
   },
   methods: {
@@ -320,17 +411,52 @@ export default {
       };
     },
     resetPropertyForm() {
+      this.editingPropertyId = null;
       this.propertyForm = this.getInitialPropertyForm();
       if (this.$refs.propertyImageInput) {
         this.$refs.propertyImageInput.value = '';
       }
     },
+    cancelPropertyEdit() {
+      this.resetPropertyForm();
+    },
+    editProperty(item) {
+      if (!item) {
+        return;
+      }
+
+      this.editingPropertyId = Number(item.id);
+      this.propertyForm = {
+        title: item.title || '',
+        address: item.address || '',
+        property_type: item.property_type || 'rooms',
+        unit_count: item.unit_count || '',
+        location: item.location || '',
+        description: item.description || '',
+        has_ac: Boolean(item.has_ac),
+        has_parking: Boolean(item.has_parking),
+        has_room_service: Boolean(item.has_room_service),
+        has_private_wc: Boolean(item.has_private_wc),
+        image_url: item.image_url || ''
+      };
+    },
     submitPropertyForm() {
-      this.$emit('submit-property', {
+      const payload = {
         ...this.propertyForm,
         owner_id: this.currentUser.id || 1,
         status: 'pending'
-      });
+      };
+
+      if (this.editingPropertyId !== null) {
+        this.$emit('update-property', {
+          id: this.editingPropertyId,
+          ...payload,
+          status: 'pending'
+        });
+        return;
+      }
+
+      this.$emit('submit-property', payload);
     },
     formatDate(value) {
       if (!value) {

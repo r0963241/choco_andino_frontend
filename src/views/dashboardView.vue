@@ -151,6 +151,7 @@
             :property-form-reset-key="propertyFormResetKey"
             :uploading-target="uploadingTarget"
             @submit-property="submitProperty"
+            @update-property="updateProperty"
             @image-upload="handleImageUpload"
             @booking-moderation="handleOwnerBookingModeration"
           />
@@ -164,6 +165,8 @@
             :accommodation-form-reset-key="accommodationFormResetKey"
             :uploading-target="uploadingTarget"
             @submit-accommodation="submitAccommodation"
+            @update-accommodation="updateAccommodation"
+            @delete-accommodation="deleteAccommodation"
             @image-upload="handleImageUpload"
           />
         </div>
@@ -650,6 +653,26 @@ export default {
         this.propertyAlert = err.response?.data?.message || 'Failed to save property.';
       }
     },
+    async updateProperty(formPayload) {
+      this.propertyAlert = '';
+
+      const { id, ...payload } = formPayload;
+
+      try {
+        await axios.patch(`http://localhost:3000/api/accommodations/properties/${id}`, {
+          ...payload,
+          owner_id: this.currentUser.id || 1
+        });
+
+        await this.loadOwnerProperties();
+        this.propertyAlert = '✅ Property details updated successfully.';
+        this.propertyUploadedImageUrl = '';
+        this.propertyFormResetKey += 1;
+      } catch (err) {
+        console.error('Error updating property:', err);
+        this.propertyAlert = err.response?.data?.message || 'Failed to update property details.';
+      }
+    },
     async submitAccommodation(formPayload) {
       this.accommodationAlert = '';
 
@@ -668,6 +691,41 @@ export default {
       } catch (err) {
         console.error('Error submitting accommodation:', err);
         this.accommodationAlert = err.response?.data?.message || 'Failed to save accommodation.';
+      }
+    },
+    async updateAccommodation(formPayload) {
+      this.accommodationAlert = '';
+
+      const { id, ...payload } = formPayload;
+
+      try {
+        await axios.put(`http://localhost:3000/api/accommodations/${id}`, {
+          ...payload,
+          owner_id: this.currentUser.id || 1
+        });
+
+        await this.loadOwnerAccommodations();
+        this.accommodationAlert = '✅ Accommodation updated successfully.';
+        this.accommodationUploadedImageUrl = '';
+        this.accommodationFormResetKey += 1;
+      } catch (err) {
+        console.error('Error updating accommodation:', err);
+        this.accommodationAlert = err.response?.data?.message || 'Failed to update accommodation.';
+      }
+    },
+    async deleteAccommodation(id) {
+      this.accommodationAlert = '';
+
+      try {
+        await axios.delete(`http://localhost:3000/api/accommodations/${id}`, {
+          data: { owner_id: this.currentUser.id || 1 }
+        });
+
+        await this.loadOwnerAccommodations();
+        this.accommodationAlert = '🗑️ Accommodation deleted successfully.';
+      } catch (err) {
+        console.error('Error deleting accommodation:', err);
+        this.accommodationAlert = err.response?.data?.message || 'Failed to delete accommodation.';
       }
     },
     async handleOwnerBookingModeration({ id, status }) {
