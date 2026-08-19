@@ -99,8 +99,9 @@
     </main>
 
     <!-- 4. CLEAN ECOLOGICAL FOOTER ELEMENT -->
-    <footer class="bg-brand-dark text-white/80 text-center py-8 border-t border-green-800 text-xs tracking-wider font-sans">
-      <p>© 2026 El Chocó Andino Private Reserve Platform. All Rights Reserved.</p>
+    <footer class="bg-brand-dark text-black/80 text-center py-8 border-t border-green-800 text-xs tracking-wider font-sans">
+      <p>© 2026 El Chocó Andino Private Reserve Platform.</p>
+      <p>All Rights Reserved.</p>
     </footer>
   </div>
 </template>
