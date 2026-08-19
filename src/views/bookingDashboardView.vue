@@ -21,8 +21,18 @@
 					</select>
 				</div>
 
-				<div v-if="selectedAccommodation" class="p-4 rounded-xl border border-green-100 bg-brand-bg/60 space-y-2 text-sm">
+				<div v-if="selectedAccommodation" class="p-4 rounded-xl border border-green-100 bg-brand-bg/60 space-y-3 text-sm">
 					<p class="font-bold text-brand-dark">Selected Accommodation</p>
+					
+					<!-- Accommodation Image -->
+					<div v-if="selectedAccommodation.image_url" class="w-full h-40 rounded-lg overflow-hidden border border-green-200">
+						<img 
+							:src="selectedAccommodation.image_url" 
+							:alt="selectedAccommodation.title"
+							class="w-full h-full object-cover"
+						/>
+					</div>
+					
 					<p><span class="font-semibold">Name:</span> {{ selectedAccommodation.title }}</p>
 					<p><span class="font-semibold">Type:</span> {{ accommodationTypeLabel(selectedAccommodation) }} / {{ bedTypeLabel(selectedAccommodation) }}</p>
 					<p><span class="font-semibold">Location:</span> {{ selectedAccommodation.location || 'Not provided' }}</p>
@@ -227,7 +237,12 @@ export default {
 		await Promise.all([this.loadAccommodations(), this.loadVisitorBookings()]);
 		this.startBookingPolling();
 
-		if (!this.bookingForm.accommodation_id && this.availableAccommodations[0]) {
+		// Check if an accommodation ID was stored in sessionStorage (from homeView redirect)
+		const redirectAccommodationId = sessionStorage.getItem('redirectAccommodationId');
+		if (redirectAccommodationId) {
+			this.bookingForm.accommodation_id = String(redirectAccommodationId);
+			sessionStorage.removeItem('redirectAccommodationId');
+		} else if (!this.bookingForm.accommodation_id && this.availableAccommodations[0]) {
 			this.bookingForm.accommodation_id = String(this.availableAccommodations[0].id);
 		}
 	},

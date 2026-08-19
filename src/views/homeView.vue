@@ -39,7 +39,7 @@
       <div class="w-16 h-1 bg-brand-medium mx-auto mt-6 rounded"></div>
     </section>
 
-    <!-- 3. CORE MARKETPLACE DISCOVERY SECTION -->
+    <!-- 3. CORE EXPLOR ACCOMMODATIONS SECTION -->
     <main class="max-w-7xl mx-auto px-6 py-12">
       <div class="text-center mb-10">
         <h2 class="text-2xl font-bold font-sans text-brand-dark mt-0">Explore Accommodations</h2>
@@ -88,7 +88,7 @@
               
               <button 
                 @click="bookAccommodation(cabin.id)" 
-                class="px-5 py-2.5 bg-brand-dark hover:bg-brand-medium text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors duration-300 shadow-sm"
+                class="px-5 py-2.5 bg-green-700 hover:bg-green-800 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors duration-300 shadow-sm"
               >
                 Book Stay
               </button>
@@ -131,13 +131,16 @@ export default {
     }
   },
   methods: {
-    bookAccommodation(id) {
+    bookAccommodation(accommodationId) {
       const token = localStorage.getItem('userToken');
       if (!token) {
-        alert('⚠️ Booking requires secure profile verification. Redirecting to access panel...');
+        // Store the accommodation ID to redirect to after login
+        sessionStorage.setItem('redirectAccommodationId', accommodationId);
         this.$router.push('/login');
       } else {
-        alert(`🎉 Exploration request registered for accommodation ID: ${id}!`);
+        // Already logged in - go directly to dashboard/booking with this accommodation
+        sessionStorage.setItem('redirectAccommodationId', accommodationId);
+        this.$router.push('/dashboard');
       }
     }
   }

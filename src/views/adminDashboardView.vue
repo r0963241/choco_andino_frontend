@@ -99,6 +99,15 @@
           <p class="mt-1 text-xs text-red-700">
             This anonymizes the user and preserves confirmed/completed bookings. This action cannot be undone.
           </p>
+          <div class="mt-3">
+            <label class="block text-xs font-semibold text-red-700 mb-1">Reason for deletion (optional):</label>
+            <textarea
+              v-model="deletionReason"
+              placeholder="Enter reason for deleting this account..."
+              class="w-full px-3 py-2 rounded-lg border border-red-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-red-400"
+              rows="3"
+            ></textarea>
+          </div>
           <div class="mt-3 flex items-center gap-2">
             <button
               type="button"
@@ -429,10 +438,6 @@ export default {
       type: String,
       default: 'pending'
     },
-    adminAlert: {
-      type: String,
-      default: ''
-    },
     processingIds: {
       type: Array,
       default: () => []
@@ -451,11 +456,13 @@ export default {
       adminUsersLoading: false,
       showDeleteConfirm: false,
       pendingDeleteUserId: null,
+      deletionReason: '',
       userSearch: '',
       userRoleFilter: 'all',
       userStatusFilter: 'all',
       selectedUserId: null,
-      deletionHistory: []
+      deletionHistory: [],
+      adminAlert: ''
     };
   },
   computed: {
@@ -583,7 +590,8 @@ export default {
       }).format(date);
     },
     isProtectedPrimaryAdmin(user) {
-      return Number(user?.id) === 10 && String(user?.role || '').toLowerCase() === 'admin';
+      // User primary admin is always protected
+      return Number(user?.id) === 1;
     },
     async loadAdminUsers() {
       const token = this.getAdminToken();
@@ -694,6 +702,7 @@ export default {
     },
     cancelUserDelete() {
       this.pendingDeleteUserId = null;
+      this.deletionReason = '';
       this.showDeleteConfirm = false;
     },
     async confirmUserDelete() {
@@ -708,6 +717,9 @@ export default {
         const response = await axios.delete(
           `http://localhost:3000/api/admin/users/${userId}`,
           {
+            data: {
+              adminReason: this.deletionReason || null
+            },
             headers: {
               Authorization: `Bearer ${token}`
             }

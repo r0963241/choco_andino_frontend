@@ -113,6 +113,7 @@ export default {
         this.alertMessage = `✅ ${response.data.message}`;
         localStorage.setItem('userToken', response.data.token);
         localStorage.setItem('userData', JSON.stringify(safeUser));
+        
         setTimeout(() => this.$router.push('/dashboard'), 1500);
       } catch (err) {
         this.isError = true;
