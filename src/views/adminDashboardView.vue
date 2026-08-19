@@ -337,6 +337,69 @@
           </table>
         </div>
       </div>
+
+      <div class="mt-8 border-t border-green-100 pt-6">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+          <div>
+            <h4 class="text-base font-bold text-brand-dark">User Deletion History</h4>
+            <p class="text-xs text-gray-500 mt-1">Audit log of user account deletions, anonymizations, and access control failures.</p>
+          </div>
+          <button
+            type="button"
+            @click="loadDeletionHistory"
+            class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-green-200 bg-brand-bg text-brand-medium hover:bg-green-100 transition"
+          >
+            Refresh History
+          </button>
+        </div>
+
+        <div v-if="deletionHistory.length === 0" class="text-sm text-gray-500 p-4 text-center">
+          No deletion history records found.
+        </div>
+
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-gray-100 text-[11px] uppercase font-bold text-brand-medium tracking-wider">
+                <th class="pb-3">Timestamp</th>
+                <th class="pb-3">Deleted User</th>
+                <th class="pb-3">Role</th>
+                <th class="pb-3">Method</th>
+                <th class="pb-3">Status</th>
+                <th class="pb-3">Deleted By</th>
+                <th class="pb-3">Reason</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm font-medium text-gray-700 divide-y divide-gray-50">
+              <tr v-for="record in deletionHistory" :key="record.id">
+                <td class="py-3.5 text-gray-600 text-xs">{{ formatDateTime(record.deleted_at) }}</td>
+                <td class="py-3.5 font-semibold text-brand-dark">{{ record.deleted_user_name }} (ID: {{ record.deleted_user_id }})</td>
+                <td class="py-3.5 text-gray-600 capitalize">{{ record.deleted_user_role }}</td>
+                <td class="py-3.5">
+                  <span
+                    class="px-2 py-1 rounded text-[10px] font-bold uppercase"
+                    :class="record.deletion_method === 'soft' ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'"
+                  >
+                    {{ record.deletion_method }}
+                  </span>
+                </td>
+                <td class="py-3.5">
+                  <span
+                    class="px-2 py-1 rounded text-[10px] font-bold uppercase"
+                    :class="record.deletion_status === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
+                  >
+                    {{ record.deletion_status }}
+                  </span>
+                </td>
+                <td class="py-3.5 text-gray-600 text-sm">{{ record.deleted_by_admin_name }}</td>
+                <td class="py-3.5 text-gray-500 text-xs max-w-xs truncate" :title="record.deletion_reason">
+                  {{ record.deletion_reason }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -391,7 +454,8 @@ export default {
       userSearch: '',
       userRoleFilter: 'all',
       userStatusFilter: 'all',
-      selectedUserId: null
+      selectedUserId: null,
+      deletionHistory: []
     };
   },
   computed: {
@@ -445,6 +509,7 @@ export default {
   },
   mounted() {
     this.loadAdminUsers();
+    this.loadDeletionHistory();
   },
   watch: {
     userSearch() {
@@ -694,6 +759,32 @@ export default {
         currency: 'USD',
         maximumFractionDigits: 2
       }).format(amount);
+    },
+    async loadDeletionHistory() {
+      const token = this.getAdminToken();
+      if (!token) {
+        console.log('No admin token found, skipping deletion history load');
+        return;
+      }
+
+      try {
+        console.log('Fetching deletion history from API...');
+        const response = await axios.get(
+          'http://localhost:3000/api/admin/users/deletion-history',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        console.log('Deletion history response:', response.data);
+        this.deletionHistory = response.data || [];
+      } catch (error) {
+        console.error('Error fetching deletion history:', error);
+        console.error('Error details:', error.response?.data);
+        this.deletionHistory = [];
+      }
     }
   }
 };
