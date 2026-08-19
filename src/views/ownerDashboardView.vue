@@ -311,6 +311,13 @@
                     >
                       Edit
                     </button>
+                    <button
+                      type="button"
+                      @click="deleteProperty(item)"
+                      class="px-2.5 py-1.5 rounded border border-red-200 bg-red-50 text-red-700 text-[10px] font-bold uppercase tracking-wider hover:bg-red-100 transition"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -362,7 +369,7 @@ export default {
       default: ''
     }
   },
-  emits: ['submit-property', 'update-property', 'image-upload', 'logout', 'booking-moderation'],
+  emits: ['submit-property', 'update-property', 'delete-property', 'image-upload', 'logout', 'booking-moderation'],
   data() {
     return {
       propertyForm: this.getInitialPropertyForm(),
@@ -508,6 +515,22 @@ export default {
     },
     moderateBooking(id, status) {
       this.$emit('booking-moderation', { id, status });
+    },
+    deleteProperty(item) {
+      if (!item || !Number.isInteger(item.id)) {
+        return;
+      }
+
+      const confirmDelete = confirm(
+        `Are you sure you want to delete the property "${item.title}"? This will also delete all its accommodations that have no active bookings.`
+      );
+
+      if (confirmDelete) {
+        this.$emit('delete-property', {
+          id: item.id,
+          owner_id: this.currentUser.id || 1
+        });
+      }
     }
   }
 };

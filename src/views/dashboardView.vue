@@ -152,6 +152,7 @@
             :uploading-target="uploadingTarget"
             @submit-property="submitProperty"
             @update-property="updateProperty"
+            @delete-property="deleteProperty"
             @image-upload="handleImageUpload"
             @booking-moderation="handleOwnerBookingModeration"
           />
@@ -726,6 +727,22 @@ export default {
       } catch (err) {
         console.error('Error deleting accommodation:', err);
         this.accommodationAlert = err.response?.data?.message || 'Failed to delete accommodation.';
+      }
+    },
+    async deleteProperty({ id, owner_id }) {
+      this.propertyAlert = '';
+
+      try {
+        await axios.delete(`http://localhost:3000/api/accommodations/properties/${id}`, {
+          data: { owner_id }
+        });
+
+        await this.loadOwnerProperties();
+        await this.loadOwnerAccommodations();
+        this.propertyAlert = '🗑️ Property and its accommodations deleted successfully.';
+      } catch (err) {
+        console.error('Error deleting property:', err);
+        this.propertyAlert = err.response?.data?.message || 'Failed to delete property.';
       }
     },
     async handleOwnerBookingModeration({ id, status }) {
